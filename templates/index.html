@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prova GAE Python</title>
+</head>
+<body>
+
+    <h1>Questa è la pagina ESTERNA</h1>
+    <p>
+        <a href="{{ url_login|safe }}">{{ url_linktext }}</a>
+    </p>
+
+    </body>
+</html>
+{% endautoescape %}

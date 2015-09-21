@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prova GAE Python</title>
+</head>
+<body>
+
+    <h1>Questa è la pagina INTERNA</h1>
+    <div>
+        <h1>Benvenuto {{ person.displayName }} - {{ person.id }} - {{ email }}</h1>
+        <p>You can always <a href="https://www.google.com/accounts/b/0/IssuedAuthSubTokens">revoke</a>permission at any time.</p>
+        <p>You can always <a href="{{ url_logout }}">logout</a></p>
+        <h3>{{ person.url }} - {{ person.image.url }}</h3>
+        <ul>
+        {% for item in resp %}
+            <li>
+                <p>{{ item.title }}</p>
+                <p>{{ item.link }}</p>
+                <p>{{ item.description|safe }}</p>
+            </li>
+        {% endfor %}
+        </ul>
+
+    </div>
+
+    </body>
+</html>
+{% endautoescape %}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prova GAE Python</title>
+</head>
+<body>
+
+    <h1>Questa è la pagina DANDELION</h1>
+    <div>
+        <ul>
+
+        {% for item in news %}
+            <li>
+                <p>{{ item.id }}</p>
+                <p>{{ item.uri }}</p>
+                <p>{{ item.label }}</p>
+                {% if 'categories' in item %}
+                <p>
+                    <ul>
+                    {% for k in item.categories %}
+                        <li>{{ k }}</li>
+                    {% endfor %}
+                    </ul>
+                </p>
+                {% endif %}
+                {% if 'types' in item %}
+                <p>
+                    <ul>
+                    {% for k in item.types %}
+                        <li>{{ k }}</li>
+                    {% endfor %}
+                    </ul>
+                </p>
+                {% endif %}
+            </li>
+        {% endfor %}
+
+        </ul>
+    </div>
+
+    </body>
+</html>
+{% endautoescape %}
+
+
+                <!--<p>-->
+                    <!--<ul>-->
+                    <!--{% for cat in item.categories %}-->
+                        <!--<li>{{ cat }}</li>-->
+                    <!--{% endfor %}-->
+                    <!--</ul>-->
+
+                <!--</p>-->
