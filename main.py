@@ -29,6 +29,7 @@ DECORATOR = OAuth2Decorator(
 	scope='https://www.googleapis.com/auth/plus.me')
 
 gplusService = build("plus", "v1", http=http)
+youtube = build('youtube', 'v3', developerKey='AIzaSyCWKe3sGVhfTmaYCvPf2jW-d_2QLEod7Rw')
 
 JINJA_ENVIRONMENT = jinja2.Environment(
 	loader=jinja2.PackageLoader('main', 'templates'),
@@ -36,63 +37,94 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 	autoescape=True)
 
 
+class OAuth2DecoratorMod(OAuth2Decorator):
+
+	def __init__(self, *args, **kwargs):
+		super(OAuth2Decorator, self).__init__(*args, **kwargs)
+
+	def oauth_aware(self, method):
+		"""Decorator that sets up for OAuth 2.0 dance, but doesn't do it.
+
+		Does all the setup for the OAuth dance, but doesn't initiate it.
+		This decorator is useful if you want to create a page that knows
+		whether or not the user has granted access to this application.
+		From within a method decorated with @oauth_aware the has_credentials()
+		and authorize_url() methods can be called.
+
+		Args:
+			method: callable, to be decorated method of a webapp.RequestHandler
+			instance.
+		"""
+
+		def setup_oauth(request_handler, *args, **kwargs):
+			if self._in_error:
+				self._display_error_message(request_handler)
+				return
+
+			user = users.get_current_user()
+			# Don't use @login_decorator as this could be used in a POST request.
+			if not user:
+				request_handler.redirect(users.create_login_url(
+					request_handler.request.uri))
+				return
+
+			self._create_flow(request_handler)
+
+			self.flow.params['state'] = self._build_state_value(request_handler, user)
+			self.credentials = self._storage_class(
+				self._credentials_class, None,
+				self._credentials_property_name, user=user).get()
+			try:
+				resp = method(request_handler, *args, **kwargs)
+			finally:
+				self.credentials = None
+			return resp
+		return setup_oauth
+
+
 class MainHandler(webapp2.RequestHandler):
+	"""
+		This trick allows non authenticated user to access this page
+		without having to login with a google account. Login is required
+		by default in the "oauth_aware" method.
+	"""
+	@DECORATOR.oauth_aware
+	def get_httpd_decorator(self):
+		httpd = DECORATOR.http()
+		return httpd
+
 	def get(self):
+		template_values = {}
 		google_user = users.get_current_user()
-		if not google_user:
-			url_log = users.create_login_url("/auth_google")
-			template_values = {
-				'url_login': url_log,
-				'url_linktext': 'Login',
-			}
+		if google_user:
+			try:
+				# OAtuh2 call to google+ person
+				httpd = self.get_httpd_decorator()
+				people_resource = gplusService.people()
+				people_document = people_resource.get(userId='me').execute(http=httpd)
 
-			template = JINJA_ENVIRONMENT.get_template('index.html')
-			self.response.write(template.render(template_values))
-		else:
-			self.redirect('/home')
-
-
-class Homepage(webapp2.RequestHandler):
-	@DECORATOR.oauth_required
-	def get(self):
-		try:
-			httpd = DECORATOR.http()
-			people_resource = gplusService.people()
-			people_document = people_resource.get(userId='me').execute(http=httpd)
-
-			google_user = users.get_current_user()
-			email = ""
-			url_logout = ""
-			if google_user:
+				google_user = users.get_current_user()
 				email = google_user.email()
-				url_logout = users.create_logout_url('/')
 
-			params = {
-				'q': 'pechino atletica',
-				'output': 'rss',
-				'num': 10,
-				'hl': 'it',
-			}
-			url = 'http://news.google.com/news'
-			params = urllib.urlencode(params)
-			url = '?'.join([url, params])
-			resp = urllib.urlopen(url)
-			data = resp.read().decode('utf-8')
-			data = feedparser.parse(data)
-			template_values = {
-				'resp': data['entries'],
-				'person': people_document,
-				'url_log': '',  # url_log,
-				'url_linktext': '',  # url_linktext,
-				'email': email,
-				'url_logout': url_logout
-			}
+				# person related info
+				template_values['person'] = people_document
+				template_values['email'] = email
+				template_values['url_logout'] = users.create_logout_url('/')
 
-			template = JINJA_ENVIRONMENT.get_template('home.html')
-			self.response.write(template.render(template_values))
-		except client.AccessTokenRefreshError:
-			print "Access token expired."
-			self.redirect('/auth_google')
+			except client.AccessTokenRefreshError:
+				print "Access token expired."
+				self.redirect('/auth_google')
+
+		else:
+			template_values['url_login'] = users.create_login_url("/auth_google")
+
+		# Retrieve news
+		freq = faroo.Faroo()
+		data = freq.param('src', 'news').query()
+
+		template_values['news'] = data.results
+		template = JINJA_ENVIRONMENT.get_template('index.html')
+		self.response.write(template.render(template_values))
 
 
 class Faroo(webapp2.RequestHandler):
@@ -151,11 +183,6 @@ class Flickr(webapp2.RequestHandler):
 
 class Youtube(webapp2.RequestHandler):
 	def get(self):
-		youtube = build(
-			'youtube',
-			'v3',
-			developerKey='AIzaSyCWKe3sGVhfTmaYCvPf2jW-d_2QLEod7Rw'
-		)
 
 		search_response = youtube.search().list(
 			q="Linkin Park",
@@ -179,6 +206,27 @@ class Youtube(webapp2.RequestHandler):
 		self.response.write(template.render(template_values))
 
 
+class GoogleNews(webapp2.RequestHandler):
+	def get(self):
+		params = {
+			'q': 'pechino atletica',
+			'output': 'rss',
+			'num': 10,
+			'hl': 'it',
+		}
+		url = 'http://news.google.com/news'
+		params = urllib.urlencode(params)
+		url = '?'.join([url, params])
+		resp = urllib.urlopen(url)
+		data = resp.read().decode('utf-8')
+		data = feedparser.parse(data)
+		template_values = {
+			'resp': data['entries']
+		}
+		template = JINJA_ENVIRONMENT.get_template('home.html')
+		self.response.write(template.render(template_values))
+
+
 class GoogleAuthorization(webapp2.RequestHandler):
 	@DECORATOR.oauth_aware
 	def get(self):
@@ -186,7 +234,7 @@ class GoogleAuthorization(webapp2.RequestHandler):
 		if DECORATOR.has_credentials():
 			try:
 				print "Has credentials"
-				self.redirect('/home')
+				self.redirect('/')
 			except client.AccessTokenRefreshError:
 				# TODO: ?
 				print "Access token expired."
@@ -228,7 +276,6 @@ else:
 
 routes = [
 	('/', MainHandler),
-	('/home', Homepage),
 	('/faroo', Faroo),
 	('/flickr', Flickr),
 	('/youtube', Youtube),

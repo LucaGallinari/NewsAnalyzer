@@ -1,17 +1,42 @@
-<!DOCTYPE html>
-{% autoescape true %}
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Prova GAE Python</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <h1>Questa è la pagina ESTERNA</h1>
-    <p>
-        <a href="{{ url_login|safe }}">{{ url_linktext }}</a>
-    </p>
+{% block title %}
+    <title>News Analyzer - Home</title>
+{% endblock %}
 
-    </body>
-</html>
-{% endautoescape %}
+
+{% block js %}
+{% endblock %}
+
+{% block content %}
+    <h1>Questa è la HOMEPAGE</h1>
+    <div id="newsWall" class="waterfall row" data-autoresize="true" data-col-min-width="350">
+
+        {% for n in news %}
+            <div class="news s4 m3">
+                <div class="card hoverable">
+                    <div class="card-image">
+                        <a href="{{ n.url }}" target="_blank"><img src="{{ n.iurl }}"></a>
+                    </div>
+                    <div class="card-content">
+                        <div class="title">
+                            <a href="{{ n.url }}" target="_blank">{{ n.title }}</a>
+                        </div>
+                        <div class="descr">{{ n.kwic|safe }}</div>
+                    </div>
+                    <div class="card-action">
+                        <p>{{ n.author }}</p>
+                        <p>{{ n.domain }}</p>
+                        <p>{{ n.date }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+    </div>
+
+{% endblock %}
+
+{% block endscript %}
+    <!-- Waterfall news -->
+{% endblock %}

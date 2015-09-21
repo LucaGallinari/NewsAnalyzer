@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel="shortcut icon" type="image/png" href="/assets/images/icon.png">
+
+        <!-- CSS -->
+        <link type="text/css" rel="stylesheet" href="/assets/css/materialize.min.css"  media="screen,projection"/>
+        <link type="text/css" rel="stylesheet" href="/assets/css/main.css" media="screen,projection" />
+        {% block css %}
+        {% endblock %}
+
+        <!-- jQuery is required by Materialize to function -->
+        <script type="text/javascript" src="/assets/js/jquery-2.1.4.min.js"></script>
+        {% block js %}
+        {% endblock %}
+
+        {% block title %}
+            <title>News Analyzer</title>
+        {% endblock %}
+    </head>
+    <body class="grey lighten-3">
+        <header>
+            <nav class="top-nav light-blue darken-1">
+                <div class="container">
+                    <div class="nav-wrapper">
+                        <a href="/" class="brand-logo center"><img src="/assets/images/logo-white.svg" width="300px" height="40px" style="margin-top: 41px" ></a>
+                        <a href="#" data-activates="nav-mobile" class="button-collapse top-nav full"><i class="mdi-navigation-menu"></i></a>
+                    </div>
+                </div>
+            </nav>
+            <ul id="nav-mobile" class="side-nav fixed grey lighten-3">
+
+                <li class="logo light-blue darken-3">
+                    <div class="user_profile">
+                         <div>IMG</div>
+                    </div>
+                    <div class="user_name">{{ email }}</div>
+                    <div class="user_email">{{ email }}</div>
+                </li>
+                <li class="bold">
+                    {% if url_login %}
+                    <a href="{{ url_login|safe }}" class="waves-effect waves-orange">
+                        <i class="mdi-hardware-keyboard-return"></i>
+                        Login
+                    </a>
+                    {% else %}
+                    <a href="{{ url_logout|safe }}" class="waves-effect waves-orange">
+                        <i class="mdi-hardware-keyboard-return"></i>
+                        Logout
+                    </a>
+                    {% endif %}
+                </li>
+
+            </ul>
+        </header>
+
+        <main>
+            <div class="col s12 m10 l8 offset-l2 offset-m1">
+                <div class="container">
+                    {% block content %}
+                    Contenuto
+                    {% endblock %}
+                </div>
+            </div>
+        </main>
+
+        <footer class="page-footer light-blue darken-4">
+            <div class="container">
+                <div class="row">
+                    <div class="col l6 s12">
+                        <h5 class="deep-orange-text text-lighten-3">About NewsAnalyzer</h5>
+                        <p class="grey-text text-lighten-4">NewsAnalyzer aims to be a simple project for easily manage domotic shutters.<br />
+                        This project is made for academic purposes using MaterializeCss and will always be completely open source.<br />
+                        If you want to see the source code please check out the GitHub repos.<br />
+                        For any other comunications feel free to contact the developers via mail.</p>
+                    </div>
+                    <div class="col l4 offset-l2 s12">
+                        <h5 class="deep-orange-text text-lighten-3">Source Code Links</h5>
+                        <ul>
+                            <li><a class="grey-text text-lighten-3" href="https://github.com/LucaGallinari/NewsAnalyzer" target="_blank">News Analyzer</a></li>
+                            <li><a class="grey-text text-lighten-3" href="http://materializecss.com/" target="_blank">MaterializeCss</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-copyright">
+                <div class="container">
+                    © 2015 <a href="mailto:luke.gallinari@gmail.com" class="deep-orange-text text-lighten-3">Luca Gallinari</a>
+                </div>
+            </div>
+        </footer>
+
+
+        <script type="text/javascript" src="/assets/js/materialize.min.js"></script>
+        <script type="text/javascript" src="/assets/js/main.js"></script>
+    <script type="text/javascript" src="/assets/js/zepto.js"></script>
+    <script type="text/javascript" src="/assets/js/jquery.waterfall.js"></script>
+        <script type="text/javascript">
+            $(document).ready(function() {
+                $('.button-collapse').sideNav();
+                $(".waterfall").waterfall();
+            });
+        </script>
+        {% block endscript %}
+        {% endblock %}
+
+    </body>
+</html>
+{% endautoescape %}
