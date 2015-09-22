@@ -15,39 +15,15 @@ header, main, footer{
     padding-left: 0;
 }
 
-nav.top-nav, .logo ,nav .nav-wrapper i, nav a.button-collapse, nav a.button-collapse i{
-    height: 122px;
-    line-height: 122px;
-}
-
 .logo{
 }
 
-.user_profile{
-    position: relative;
-    height: 82px;
-    width: 100%;
-}
-
-.user_profile > div {
-}
-
 .user_name{
-    color: white;
-    position: relative;
-    height: 20px;
-    width: 100%;
-    line-height: 20px;
-    font-size: 16px;
+
 }
 
 .user_email{
-    color: #f5f5f5;
-    position: relative;
-    height: 20px;
-    width: 100%;
-    line-height: 20px;
-    font-size: 12px;
+
 }
 
 /* News */
@@ -111,9 +87,6 @@ nav.top-nav, .logo ,nav .nav-wrapper i, nav a.button-collapse, nav a.button-coll
 
 
 @media only screen and (min-width: 1700px){
-    header, main, footer{
-        padding-left: 240px;
-    }
     .hidden-s, .hidden-sm, .hidden-m, .hidden-l {
         display:block;
     }
@@ -125,9 +98,6 @@ nav.top-nav, .logo ,nav .nav-wrapper i, nav a.button-collapse, nav a.button-coll
 }
 
 @media only screen and (min-width: 992px) and (max-width: 1700px){
-    header, main, footer{
-        padding-left: 240px;
-    }
     .hidden-s, .hidden-sm, .hidden-m {
         display:block;
     }
@@ -140,9 +110,6 @@ nav.top-nav, .logo ,nav .nav-wrapper i, nav a.button-collapse, nav a.button-coll
 }
 
 @media only screen and (min-width: 780px) and (max-width: 991px){
-    header, main, footer{
-        padding-left: 0;
-    }
     .hidden-s, .hidden-sm {
         display:block;
     }
@@ -156,9 +123,6 @@ nav.top-nav, .logo ,nav .nav-wrapper i, nav a.button-collapse, nav a.button-coll
 
 
 @media only screen and (min-width: 600px) and (max-width: 779px){
-    header, main, footer{
-        padding-left: 0;
-    }
     .hidden-s {
         display:block;
     }

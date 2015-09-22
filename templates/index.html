@@ -9,7 +9,18 @@
 {% endblock %}
 
 {% block content %}
-    <h1>Questa è la HOMEPAGE</h1>
+
+    <br>
+    <div class="row">
+        <form class="col s12 m10 l8 offset-m1 offset-l2">
+            <div class="input-field col s12">
+                <i class="material-icons prefix">search</i>
+                <input id="search" type="text" required>
+                <label for="search">Type your keywords here</label>
+            </div>
+        </form>
+    </div>
+
     <div id="newsWall" class="waterfall row" data-autoresize="true" data-col-min-width="350">
 
         {% for n in news %}
@@ -33,6 +44,9 @@
             </div>
         {% endfor %}
 
+    </div>
+    <div id="loading" class="progress row">
+        <div class="indeterminate"></div>
     </div>
 
 {% endblock %}

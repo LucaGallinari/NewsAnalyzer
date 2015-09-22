@@ -127,15 +127,13 @@ class MainHandler(webapp2.RequestHandler):
 		self.response.write(template.render(template_values))
 
 
-class Faroo(webapp2.RequestHandler):
+class FarooAPI(webapp2.RequestHandler):
 	def get(self):
+		start = self.request.get("start")
 		freq = faroo.Faroo()
-		data = freq.param('src', 'news').query()
-		template_values = {
-			'news': data.results,
-		}
-		template = JINJA_ENVIRONMENT.get_template('faroo.html')
-		self.response.write(template.render(template_values))
+		data = freq.param('src', 'news').param('start', start).query(True)
+		# data = json.dumps(data.results)
+		self.response.write(data)
 
 
 class Dandelion(webapp2.RequestHandler):
@@ -276,7 +274,7 @@ else:
 
 routes = [
 	('/', MainHandler),
-	('/faroo', Faroo),
+	('/api/faroo', FarooAPI),
 	('/flickr', Flickr),
 	('/youtube', Youtube),
 	('/dandelion', Dandelion),

@@ -8,11 +8,12 @@
 
         <!-- CSS -->
         <link type="text/css" rel="stylesheet" href="/assets/css/materialize.min.css"  media="screen,projection"/>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link type="text/css" rel="stylesheet" href="/assets/css/main.css" media="screen,projection" />
         {% block css %}
         {% endblock %}
 
-        <!-- jQuery is required by Materialize to function -->
+        <!-- js -->
         <script type="text/javascript" src="/assets/js/jquery-2.1.4.min.js"></script>
         {% block js %}
         {% endblock %}
@@ -23,38 +24,44 @@
     </head>
     <body class="grey lighten-3">
         <header>
-            <nav class="top-nav light-blue darken-1">
-                <div class="container">
-                    <div class="nav-wrapper">
-                        <a href="/" class="brand-logo center"><img src="/assets/images/logo-white.svg" width="300px" height="40px" style="margin-top: 41px" ></a>
-                        <a href="#" data-activates="nav-mobile" class="button-collapse top-nav full"><i class="mdi-navigation-menu"></i></a>
-                    </div>
-                </div>
-            </nav>
-            <ul id="nav-mobile" class="side-nav fixed grey lighten-3">
-
-                <li class="logo light-blue darken-3">
-                    <div class="user_profile">
-                         <div>IMG</div>
-                    </div>
-                    <div class="user_name">{{ email }}</div>
-                    <div class="user_email">{{ email }}</div>
+            <ul id="dropdown1" class="dropdown-content" >
+                <li>
+                    <div>IMG</div>
+                </li>
+                <li class="divider"></li>
+                <li>
+                    <a href="#">{{ email }}</a>
+                </li>
+                <li>
+                    <a href="#">{{ email }}</a>
                 </li>
                 <li class="bold">
                     {% if url_login %}
                     <a href="{{ url_login|safe }}" class="waves-effect waves-orange">
-                        <i class="mdi-hardware-keyboard-return"></i>
-                        Login
+                        Login<!--<i class="material-icons">input</i>-->
                     </a>
                     {% else %}
                     <a href="{{ url_logout|safe }}" class="waves-effect waves-orange">
-                        <i class="mdi-hardware-keyboard-return"></i>
-                        Logout
+                        Logout<!--<i class="material-icons">power_settings_new</i>-->
                     </a>
                     {% endif %}
                 </li>
-
             </ul>
+            <nav class="top-nav light-blue darken-1">
+                <div class="nav-wrapper">
+                    <a href="/" class="brand-logo center"><img src="/assets/images/logo-white.svg" width="300px" height="40px" style="margin-top: 41px" ></a>
+                    <a href="#" data-activates="nav-mobile" class="button-collapse top-nav full"><i class="mdi-navigation-menu"></i></a>
+                    <ul class="left hide-on-med-and-down">
+                        <li><a href="#">Components</a></li>
+                        <!-- User dropdown -->
+                        <li>
+                            <a class="dropdown-button" href="#!" data-activates="dropdown1" data-beloworigin="true" data-constrainwidth="false">
+                                User Profile<i class="material-icons right">arrow_drop_down</i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
         </header>
 
         <main>
@@ -95,15 +102,15 @@
 
 
         <script type="text/javascript" src="/assets/js/materialize.min.js"></script>
-        <script type="text/javascript" src="/assets/js/main.js"></script>
-    <script type="text/javascript" src="/assets/js/zepto.js"></script>
-    <script type="text/javascript" src="/assets/js/jquery.waterfall.js"></script>
+        <script type="text/javascript" src="/assets/js/zepto.js"></script>
+        <script type="text/javascript" src="/assets/js/jquery.waterfall.js"></script>
         <script type="text/javascript">
             $(document).ready(function() {
                 $('.button-collapse').sideNav();
                 $(".waterfall").waterfall();
             });
         </script>
+        <script type="text/javascript" src="/assets/js/main.js"></script>
         {% block endscript %}
         {% endblock %}
 
