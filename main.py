@@ -37,6 +37,12 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 	autoescape=True)
 
 
+# Jinja Filter Extension
+def ccontains(value, arg):
+	return arg in value
+JINJA_ENVIRONMENT.filters['ccontains'] = ccontains
+
+
 class OAuth2DecoratorMod(OAuth2Decorator):
 
 	def __init__(self, *args, **kwargs):
@@ -91,6 +97,8 @@ class MainHandler(webapp2.RequestHandler):
 	@DECORATOR.oauth_aware
 	def get_httpd_decorator(self):
 		httpd = DECORATOR.http()
+		if httpd is None:
+			raise client.AccessTokenRefreshError
 		return httpd
 
 	def get(self):
@@ -131,10 +139,13 @@ class MainHandler(webapp2.RequestHandler):
 		data = freq.param('src', 'news').query(False, search)
 
 		# No news found?
-		if data.results is None:
-			template_values['news'] = []
+		if hasattr(data, 'results'):
+			if data.results is None:
+				template_values['news'] = []
+			else:
+				template_values['news'] = data.results
 		else:
-			template_values['news'] = data.results
+			template_values['news'] = []
 		template = JINJA_ENVIRONMENT.get_template('index.html')
 		self.response.write(template.render(template_values))
 

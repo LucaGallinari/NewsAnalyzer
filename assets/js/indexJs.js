@@ -49,6 +49,10 @@ $(document).ready(function(){
                         }
                     }
                     numNews = $newsWall.find('.news').length;
+
+                    setTimeout(function () {
+                        $(".waterfall").waterfall();
+                    }, 500);
                 })
                 .fail(function () {
                     Materialize.toast('Error while retrieving news from the server', 4000);
@@ -71,20 +75,41 @@ $(document).ready(function(){
 
 	});
 
+    $newsWall.on('error', 'img', function() {
+        $(this).attr("src", '/assets/images/img_not_available.png');
+        alert("err");
+	});
+
+
+     // onerror="this.onerror=null;this.src='/assets/images/img_not_available.png';"
+
 
 
     /* Functions */
+
     function calculateOffsetFromTop() {
         return  parseInt($newsWall.offset().top) +
                 parseInt($newsWall.outerHeight(true)) -
                 parseInt(window.innerHeight) - 200;
     }
+
     function addNews (news) {
+        if (news.iurl == "")
+            news.iurl = '/assets/images/img_not_available.png';
         var htmlEl =
             '<div class="news s4 m3"> \
                 <div class="card hoverable"> \
                     <div class="card-image"> \
-                        <a href="'+ news.url +'" target="_blank"><img src="'+ news.iurl +'"></a> \
+                        <a href="'+ news.url +'" target="_blank">';
+
+        if (news.iurl.indexOf("youtube.com") > -1) {
+            htmlEl +=       '<div class="video-container"> \
+                                <iframe src="'+ news.iurl +'" frameborder="0" allowfullscreen></iframe> \
+                            </div>';
+        } else {
+            htmlEl +=       '<img src="'+ news.iurl +'">';
+        }
+        htmlEl +=       '</a> \
                     </div> \
                     <div class="card-content"> \
                         <div class="title"> \

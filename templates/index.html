@@ -13,23 +13,27 @@
     <br>
     <div class="row">
         <form class="col s12 m10 l8 offset-m1 offset-l2" method="GET">
-            <div class="input-field col s3">
-                <select id="filters">
-                    <option value="" disabled selected>Select a filter</option>
-                    <option value="google ciao">Option 1</option>
-                    <option value="google nexus 2015">Option 2</option>
-                    <option value="non saprei">Option 3</option>
-                </select>
-                <label for="filters">Materialize Select</label>
-            </div>
-            <div class="input-field col s7">
+            {% if url_logout %}
+                <div class="input-field col s3">
+                    <select id="filters">
+                        <option value="" disabled selected>Select a filter</option>
+                        <option value="google ciao">Option 1</option>
+                        <option value="google nexus 2015">Option 2</option>
+                        <option value="non saprei">Option 3</option>
+                    </select>
+                    <label for="filters">Materialize Select</label>
+                </div>
+            {% endif %}
+            <div class="input-field col {% if url_logout %} s7 {%else%} s10 {%endif%}">
                 <i class="material-icons prefix">search</i>
                 <input id="search" type="text" name="search" value="{{ search }}">
                 <label for="search">Type your keywords here (eg: "google nexus 2015")</label>
             </div>
-            <button class="btn waves-effect waves-light" type="submit">
-                <i class="material-icons center">search</i>
-            </button>
+            <div class="col s2">
+                <button class="btn waves-effect waves-light" type="submit">
+                    <i class="material-icons center">search</i>
+                </button>
+            </div>
         </form>
     </div>
 
@@ -43,7 +47,19 @@
                 <div class="news s4 m3">
                     <div class="card hoverable">
                         <div class="card-image">
-                            <a href="{{ n.url }}" target="_blank"><img src="{{ n.iurl }}"></a>
+                            <a href="{{ n.url }}" target="_blank">
+                                {% if n.iurl != ''%}
+                                    {% if n.iurl|ccontains("youtube.com") %}
+                                        <div class="video-container">
+                                            <iframe src="{{ n.iurl }}" frameborder="0" allowfullscreen></iframe>
+                                        </div>
+                                    {% else %}
+                                        <img src="{{ n.iurl }}">
+                                    {% endif %}
+                                {% else %}
+                                    <img src="/assets/images/img_not_available.png">
+                                {% endif %}
+                            </a>
                         </div>
                         <div class="card-content">
                             <div class="title">

@@ -83,7 +83,7 @@ Like masonry column shift, but works. */
 			var cStyle = getComputedStyle(self.el);
 
             // hide element
-			self.el.hidden = true;
+			//self.el.hidden = true;
 
             // prevent scrollbar width changing
 			self.el.style.minHeight = cStyle.height;
@@ -196,7 +196,7 @@ Like masonry column shift, but works. */
 			self.lastItem = self.items[self.items.length - 1];
 
             // show container
-			self.el.removeAttribute("hidden");
+			//self.el.removeAttribute("hidden");
 
             // set proper styles for each item in items array
 			self._update();
