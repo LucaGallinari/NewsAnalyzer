@@ -12,37 +12,54 @@
 
     <br>
     <div class="row">
-        <form class="col s12 m10 l8 offset-m1 offset-l2">
-            <div class="input-field col s12">
-                <i class="material-icons prefix">search</i>
-                <input id="search" type="text" required>
-                <label for="search">Type your keywords here</label>
+        <form class="col s12 m10 l8 offset-m1 offset-l2" method="GET">
+            <div class="input-field col s3">
+                <select id="filters">
+                    <option value="" disabled selected>Select a filter</option>
+                    <option value="google ciao">Option 1</option>
+                    <option value="google nexus 2015">Option 2</option>
+                    <option value="non saprei">Option 3</option>
+                </select>
+                <label for="filters">Materialize Select</label>
             </div>
+            <div class="input-field col s7">
+                <i class="material-icons prefix">search</i>
+                <input id="search" type="text" name="search" value="{{ search }}">
+                <label for="search">Type your keywords here (eg: "google nexus 2015")</label>
+            </div>
+            <button class="btn waves-effect waves-light" type="submit">
+                <i class="material-icons center">search</i>
+            </button>
         </form>
     </div>
 
     <div id="newsWall" class="waterfall row" data-autoresize="true" data-col-min-width="350">
-
-        {% for n in news %}
-            <div class="news s4 m3">
-                <div class="card hoverable">
-                    <div class="card-image">
-                        <a href="{{ n.url }}" target="_blank"><img src="{{ n.iurl }}"></a>
-                    </div>
-                    <div class="card-content">
-                        <div class="title">
-                            <a href="{{ n.url }}" target="_blank">{{ n.title }}</a>
+        {% if news|length ==0 %}
+            <div class="card-panel">
+                <h5 class="blue-text text-darken-2 valign">No treding news found. Check back later!</h5>
+            </div>
+        {% else %}
+            {% for n in news %}
+                <div class="news s4 m3">
+                    <div class="card hoverable">
+                        <div class="card-image">
+                            <a href="{{ n.url }}" target="_blank"><img src="{{ n.iurl }}"></a>
                         </div>
-                        <div class="descr">{{ n.kwic|safe }}</div>
-                    </div>
-                    <div class="card-action">
-                        <p>{{ n.author }}</p>
-                        <p>{{ n.domain }}</p>
-                        <p>{{ n.date }}</p>
+                        <div class="card-content">
+                            <div class="title">
+                                <a href="{{ n.url }}" target="_blank">{{ n.title }}</a>
+                            </div>
+                            <div class="descr">{{ n.kwic|safe }}</div>
+                        </div>
+                        <div class="card-action">
+                            <p>{{ n.author }}</p>
+                            <p>{{ n.domain }}</p>
+                            <p>{{ n.date }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+        {% endif %}
 
     </div>
     <div id="loading" class="progress row">
@@ -52,5 +69,24 @@
 {% endblock %}
 
 {% block endscript %}
-    <!-- Waterfall news -->
+
+    <!-- Use Waterfall only if there are some news -->
+    {% if news|length != 0 %}
+        <script type="text/javascript" src="/assets/js/zepto.js"></script>
+        <script type="text/javascript" src="/assets/js/jquery.waterfall.js"></script>
+        <script type="text/javascript">
+            $(document).ready(function() {
+                $(".waterfall").waterfall();
+            });
+        </script>
+    {% endif %}
+
+    <script type="text/javascript" src="/assets/js/indexJs.js"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#loading').hide();
+            $('select').material_select();
+        });
+    </script>
 {% endblock %}

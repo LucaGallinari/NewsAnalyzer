@@ -107,8 +107,9 @@ class MainHandler(webapp2.RequestHandler):
 				email = google_user.email()
 
 				# person related info
-				template_values['person'] = people_document
-				template_values['email'] = email
+				template_values['person_name'] = people_document['displayName']
+				template_values['person_image_url'] = people_document['image']['url']
+				template_values['person_email'] = email
 				template_values['url_logout'] = users.create_logout_url('/')
 
 			except client.AccessTokenRefreshError:
@@ -118,21 +119,38 @@ class MainHandler(webapp2.RequestHandler):
 		else:
 			template_values['url_login'] = users.create_login_url("/auth_google")
 
+		# Search by keywords?
+		search = self.request.get('search')
+		if search == '':
+			search = None
+		else:
+			template_values['search'] = search
+
 		# Retrieve news
 		freq = faroo.Faroo()
-		data = freq.param('src', 'news').query()
+		data = freq.param('src', 'news').query(False, search)
 
-		template_values['news'] = data.results
+		# No news found?
+		if data.results is None:
+			template_values['news'] = []
+		else:
+			template_values['news'] = data.results
 		template = JINJA_ENVIRONMENT.get_template('index.html')
 		self.response.write(template.render(template_values))
 
 
 class FarooAPI(webapp2.RequestHandler):
 	def get(self):
+		# Get params
+		search = self.request.get('search')
 		start = self.request.get("start")
+		if search == '':
+			search = None
+
+		# Retrieve news
 		freq = faroo.Faroo()
-		data = freq.param('src', 'news').param('start', start).query(True)
-		# data = json.dumps(data.results)
+		data = freq.param('src', 'news').param('start', start).query(True, search)
+
 		self.response.write(data)
 
 
