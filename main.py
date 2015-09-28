@@ -14,9 +14,10 @@ from google.appengine.api import memcache
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client import client
 from apiclient.discovery import build
+from gaesessions import get_current_session
 
 # API + LIBS
-# from models import *
+from models import *
 from libs import feedparser
 from API import faroo
 from API.dandelion import DataTXT
@@ -43,25 +44,36 @@ def ccontains(value, arg):
 JINJA_ENVIRONMENT.filters['ccontains'] = ccontains
 
 
+# Check if logged by using sessions
+def is_logged():
+	session = get_current_session()
+	try:
+		email = session['email']
+		return True
+	except KeyError:
+		return False
+
+
+# Get person session values
+def get_person_session_values():
+	session = get_current_session()
+	values = {
+		'email': session['email'],
+		'img_profile': session['img_profile'],
+		'display_name': session['display_name'],
+		'url_logout': '/logout'
+	}
+	return values
+
+
+# OAuth2DecoratorMod override OAuth2Decorator so that user do not get redirected
+# if not logged TODO: ?
 class OAuth2DecoratorMod(OAuth2Decorator):
 
 	def __init__(self, *args, **kwargs):
 		super(OAuth2Decorator, self).__init__(*args, **kwargs)
 
 	def oauth_aware(self, method):
-		"""Decorator that sets up for OAuth 2.0 dance, but doesn't do it.
-
-		Does all the setup for the OAuth dance, but doesn't initiate it.
-		This decorator is useful if you want to create a page that knows
-		whether or not the user has granted access to this application.
-		From within a method decorated with @oauth_aware the has_credentials()
-		and authorize_url() methods can be called.
-
-		Args:
-			method: callable, to be decorated method of a webapp.RequestHandler
-			instance.
-		"""
-
 		def setup_oauth(request_handler, *args, **kwargs):
 			if self._in_error:
 				self._display_error_message(request_handler)
@@ -88,42 +100,13 @@ class OAuth2DecoratorMod(OAuth2Decorator):
 		return setup_oauth
 
 
-class MainHandler(webapp2.RequestHandler):
-	"""
-		This trick allows non authenticated user to access this page
-		without having to login with a google account. Login is required
-		by default in the "oauth_aware" method.
-	"""
-	@DECORATOR.oauth_aware
-	def get_httpd_decorator(self):
-		httpd = DECORATOR.http()
-		if httpd is None:
-			raise client.AccessTokenRefreshError
-		return httpd
+class IndexHandler(webapp2.RequestHandler):
 
 	def get(self):
 		template_values = {}
-		google_user = users.get_current_user()
-		if google_user:
-			try:
-				# OAtuh2 call to google+ person
-				httpd = self.get_httpd_decorator()
-				people_resource = gplusService.people()
-				people_document = people_resource.get(userId='me').execute(http=httpd)
 
-				google_user = users.get_current_user()
-				email = google_user.email()
-
-				# person related info
-				template_values['person_name'] = people_document['displayName']
-				template_values['person_image_url'] = people_document['image']['url']
-				template_values['person_email'] = email
-				template_values['url_logout'] = users.create_logout_url('/')
-
-			except client.AccessTokenRefreshError:
-				print "Access token expired."
-				self.redirect('/auth_google')
-
+		if is_logged():
+			template_values = get_person_session_values()
 		else:
 			template_values['url_login'] = users.create_login_url("/auth_google")
 
@@ -146,10 +129,155 @@ class MainHandler(webapp2.RequestHandler):
 				template_values['news'] = data.results
 		else:
 			template_values['news'] = []
+
+		# Render template and return
 		template = JINJA_ENVIRONMENT.get_template('index.html')
 		self.response.write(template.render(template_values))
 
 
+class FiltersHandler(webapp2.RequestHandler):
+	def get(self):
+		if not is_logged():
+			self.redirect(users.create_login_url("/auth_google"))
+		else:
+			template_values = get_person_session_values()
+
+			# Retrieve filters from DB
+			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
+			filters = []
+			for f in q:
+				fil = {
+					'id': f.key.id(),
+					'name': f.name,
+					'keywords': f.keywords,
+					'email_hour': f.email_hour,
+				}
+				filters.append(fil)
+			template_values['filters'] = filters
+
+			# Render template and return
+			template = JINJA_ENVIRONMENT.get_template('filters.html')
+			self.response.write(template.render(template_values))
+
+	# POST for INSERT
+	def post(self):
+		if not is_logged():
+			self.response.write("You are not logged!")
+		else:
+			# Retrieve data
+			session = get_current_session()
+			name = self.request.get('name')
+			keywords = self.request.get('keywords')
+			email_hour = self.request.get('email_hour')
+
+			# Some checks
+			if name == "":
+				self.response.write("Name field is empty!")
+				return
+			if keywords is None:
+				keywords = ""
+			if email_hour == "":
+				email_hour = -1
+			else:
+				try:
+					email_hour = int(email_hour)
+				except ValueError:
+					email_hour = -1
+
+			# Save the filter
+			my_filter = DBFilter(
+				owner=session['email'],
+				name=name,
+				keywords=keywords,
+				email_hour=email_hour
+			)
+			key = my_filter.put()
+			self.response.write("Ok: " + str(key.id()))
+
+	# PUT for MODIFICATION
+	def put(self):
+		if not is_logged():
+			self.response.write("You are not logged!")
+		else:
+			# Retrieve data
+			session = get_current_session()
+			filter_id = self.request.get('id')
+			name = self.request.get('name')
+			keywords = self.request.get('keywords')
+			email_hour = self.request.get('email_hour')
+
+			# Some checks - ID
+			if filter_id is None:
+				self.response.write("ID not specified!")
+				return
+			if filter_id == "":
+				self.response.write("ID is empty!")
+				return
+			try:
+				filter_id = long(filter_id)
+			except ValueError:
+				self.response.write("ID is not a valid integer!")
+				return
+			# Some checks - OTHERS
+			if name == "":
+				self.response.write("Name field is empty!")
+				return
+			if keywords is None:
+				keywords = ""
+			if email_hour == "":
+				email_hour = -1
+			else:
+				try:
+					email_hour = int(email_hour)
+				except ValueError:
+					email_hour = -1
+
+			# Update the filter
+			my_filter = DBFilter(id=filter_id, owner=session['email']).key.get()
+			my_filter.name = name
+			my_filter.keywords = keywords
+			my_filter.email_hour = email_hour
+			my_filter.put()
+			self.response.write("Ok")
+
+	# DELETE for DELETE
+	def delete(self):
+		if not is_logged():
+			self.response.write("You are not logged!")
+		else:
+			session = get_current_session()
+			filter_id = self.request.get('id')
+			if filter_id is None:
+				self.response.write("ID not specified!")
+				return
+			if filter_id == "":
+				self.response.write("ID is empty!")
+				return
+
+			try:
+				filter_id = long(filter_id)
+			except ValueError:
+				self.response.write("ID is not a valid integer!")
+				return
+			DBFilter(id=filter_id, owner=session['email']).key.delete()
+			self.response.write("Ok")
+
+
+class FavoritesHandler(webapp2.RequestHandler):
+	def get(self):
+		if not is_logged():
+			self.redirect(users.create_login_url("/auth_google"))
+		else:
+			template_values = get_person_session_values()
+
+			# Render template and return
+			template = JINJA_ENVIRONMENT.get_template('favorites.html')
+			self.response.write(template.render(template_values))
+
+
+
+
+#OTHERS
 class FarooAPI(webapp2.RequestHandler):
 	def get(self):
 		# Get params
@@ -169,7 +297,7 @@ class Dandelion(webapp2.RequestHandler):
 	def get(self):
 		datatxt = DataTXT(app_id='ff66f767', app_key='e22401da7ae5647cb5b7070dea5e0e7f')
 		data = datatxt.nex(
-			'http://www.inquisitr.com/2376034/hurricane-season-2015-predictions-hurricane-erikas-path-will-dump-rain-on-florida/',
+			'Link notizia',
 			include_categories=True,
 			include_types=True
 		)
@@ -254,59 +382,85 @@ class GoogleNews(webapp2.RequestHandler):
 		self.response.write(template.render(template_values))
 
 
+class Logout(webapp2.RequestHandler):
+	def get(self):
+		if is_logged():
+			print "Logging out"
+			session = get_current_session()
+			if session.is_active():
+				session.terminate()
+				DECORATOR.set_credentials(None)
+			self.redirect(users.create_logout_url('/'))
+		else:
+			self.redirect('/')
+
+
 class GoogleAuthorization(webapp2.RequestHandler):
 	@DECORATOR.oauth_aware
 	def get(self):
-		# has credentials? redir to internal page
-		if DECORATOR.has_credentials():
-			try:
+
+		google_user = users.get_current_user()
+		if google_user:
+
+			email = google_user.email()
+			# Logged
+			# has credentials?
+			if DECORATOR.has_credentials():
 				print "Has credentials"
-				self.redirect('/')
-			except client.AccessTokenRefreshError:
-				# TODO: ?
-				print "Access token expired."
-				self.redirect('/auth_google')
+
+				try:
+					# OAtuh2 call to google+ person
+					httpd = DECORATOR.http()
+					gplus_user = gplusService.people().get(userId='me').execute(http=httpd)
+					session = get_current_session()
+					session['email'] = email
+					session['img_profile'] = gplus_user['image']['url']
+					session['display_name'] = gplus_user['displayName']
+
+					# Save the user, if already present it get updated
+					my_user = DBUser.query(DBUser.email == email).get()
+					if not my_user:
+						print "- User not in db"
+						# print "   inserted"
+						# TODO: Email
+					else:
+						print "- Already present"
+
+					my_user = DBUser(
+						email=email,
+						display_name=session['display_name'],
+						img_profile=session['img_profile']
+					)
+					my_user.put()
+
+					self.redirect('/')
+
+				except client.AccessTokenRefreshError:
+					print "Access token expired."
+					self.redirect('/auth_google')
+
+			else:
+				# No credentials, show credentials page
+				print "No credentials"
+				template_values = {
+					'login_url': DECORATOR.authorize_url(),
+				}
+				template = JINJA_ENVIRONMENT.get_template('login.html')
+				self.response.write(template.render(template_values))
 		else:
-			# no credentials
-			template_values = {
-				'login_url': DECORATOR.authorize_url(),
-			}
-			template = JINJA_ENVIRONMENT.get_template('login.html')
-			self.response.write(template.render(template_values))
-
-'''
-if google_user:
-	email = google_user.email()
-
-	my_user = DBUser.query(DBUser.email == email).get()
-	if not my_user:
-		print "- User not in db"
-
-		my_user = DBUser(email=email, nickname=google_user.nickname())
-		my_user.put()
-		print "   inserito"
-
-		# TODO: Email
-	else:
-		print "- Already present"
-
-	url_log = users.create_logout_url(self.request.uri)
-	url_linktext = 'Logout'
-
-else:
-	email = 'NONE'
-	url_log = users.create_login_url(self.request.uri)
-	url_linktext = 'Login'
-
-'''
+			# Not logged, show google login
+			self.redirect(users.create_login_url("/auth_google"))
 
 
 routes = [
-	('/', MainHandler),
+	('/', IndexHandler),
+	('/filters', FiltersHandler),
+	('/favorites', FavoritesHandler),
 	('/api/faroo', FarooAPI),
 	('/flickr', Flickr),
 	('/youtube', Youtube),
 	('/dandelion', Dandelion),
+	('/logout', Logout),
 	('/auth_google', GoogleAuthorization),
 	(DECORATOR.callback_path, DECORATOR.callback_handler())]
 

@@ -19,10 +19,12 @@ $(document).ready(function(){
         if (numNews == 0 || noMoreNews)
             return;
         var pTop = $(document).scrollTop();
+        console.log(pTop + " / " + oTop);
         if (pTop > oTop) { // update newsWall
+            console.log("up");
             if (!lock) {
-                Materialize.toast('Loading news', 2000);
                 lock = true;
+                Materialize.toast('Loading news', 2000);
                 $('#loading').show();
 
                 var s = $search.val();
@@ -49,16 +51,14 @@ $(document).ready(function(){
                         }
                     }
                     numNews = $newsWall.find('.news').length;
-
-                    setTimeout(function () {
-                        $(".waterfall").waterfall();
-                    }, 500);
                 })
                 .fail(function () {
                     Materialize.toast('Error while retrieving news from the server', 4000);
                 })
                 .always(function(){
+
                     setTimeout(function () {
+                        $(".waterfall").waterfall();
                         oTop = calculateOffsetFromTop();
                         lock = false;
                     }, 1100);
@@ -75,18 +75,8 @@ $(document).ready(function(){
 
 	});
 
-    $newsWall.on('error', 'img', function() {
-        $(this).attr("src", '/assets/images/img_not_available.png');
-        alert("err");
-	});
-
-
-     // onerror="this.onerror=null;this.src='/assets/images/img_not_available.png';"
-
-
 
     /* Functions */
-
     function calculateOffsetFromTop() {
         return  parseInt($newsWall.offset().top) +
                 parseInt($newsWall.outerHeight(true)) -
@@ -107,7 +97,7 @@ $(document).ready(function(){
                                 <iframe src="'+ news.iurl +'" frameborder="0" allowfullscreen></iframe> \
                             </div>';
         } else {
-            htmlEl +=       '<img src="'+ news.iurl +'">';
+            htmlEl +=       '<img src="'+ news.iurl +'" onerror=\'this.onerror=null;this.src="/assets/images/img_not_available.png";\'>';
         }
         htmlEl +=       '</a> \
                     </div> \

@@ -10,7 +10,6 @@
 
 {% block content %}
 
-    <br>
     <div class="row">
         <form class="col s12 m10 l8 offset-m1 offset-l2" method="GET">
             {% if url_logout %}
@@ -54,7 +53,7 @@
                                             <iframe src="{{ n.iurl }}" frameborder="0" allowfullscreen></iframe>
                                         </div>
                                     {% else %}
-                                        <img src="{{ n.iurl }}">
+                                        <img src="{{ n.iurl }}" onerror="this.onerror=null;this.src='/assets/images/img_not_available.png';">
                                     {% endif %}
                                 {% else %}
                                     <img src="/assets/images/img_not_available.png">
@@ -92,7 +91,10 @@
         <script type="text/javascript" src="/assets/js/jquery.waterfall.js"></script>
         <script type="text/javascript">
             $(document).ready(function() {
-                $(".waterfall").waterfall();
+                // sometimes fails if called on ready
+                setTimeout(function () {
+                    $(".waterfall").waterfall();
+                }, 500);
             });
         </script>
     {% endif %}

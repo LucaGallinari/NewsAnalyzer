@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}
+    <title>News Analyzer - My Filters</title>
+{% endblock %}
+
+
+{% block js %}
+{% endblock %}
+
+{% block content %}
+    <!-- Table + Modals -->
+    <div class="row">
+        <div class="xl9 offset-xl1">
+            <h4 class="deep-orange-text">Filters List</h4>
+            <table id="listFilters" class="collection highlight {% if filters|length == 0 %}hidden{% endif %}" style="position:static">
+                <tbody>
+                {% if filters|length != 0 %}
+                    {% for f in filters %}
+                        <tr id="listFilter{{ f.id }}" class="collection-item">
+                            <td class="name">{{ f.name }}</td>
+                            <td class="keywords">{{ f.keywords }}</td>
+                            <td class="email_hour">{{ "no" if f.email_hour==-1 else f.email_hour }}</td>
+                            <td class="modify"><a data-toggle="{{ f.id }}" class="modifyFilter">Edit</a></td>
+                            <td class="remove"><a data-toggle="{{ f.id }}" class="removeFilter">Remove</a></td>
+                        </tr>
+                    {% endfor %}
+                {% endif %}
+            </table>
+
+            <div id="noFilters" class="card-panel red lighten-1 {% if filters|length != 0 %}hide{% endif %}">
+                <p class="flow-text">No filters found! Insert one by using the form below.</p>
+            </div>
+
+            <!-- Remove Filter Confirm Modal -->
+            <div id="confirmModal" class="modal">
+                <div class="modal-content">
+                    <h4 class="deep-orange-text">Delete Filter</h4>
+                    <p class="flow-text">You are removing a filter! You won't be able to undo that.</p>
+                </div>
+                <div class="modal-footer">
+                    <a class="modal-action modal-close waves-effect waves-green btn-flat deep-orange-text right" id="agreeRemove">
+                        Agree
+                    </a>
+                    <a href="#" class="modal-action modal-close waves-effect waves-red btn-flat left" id="disagreeRemove">
+                        Disagree
+                    </a>
+                </div>
+            </div>
+
+            <!-- Modify Filter Modal -->
+            <div id="modifyModal" class="modal">
+                <div class="modal-content">
+                    <h4 class="deep-orange-text">Modify Filter</h4>
+                    <div class="card-panel red lighten-1 hidden" id="modifyFilterErrors"></div>
+                    <div id="modifyFilterContainer"><!-- Form goes here --></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- END Table + Modals -->
+
+    <!-- Add new Filter -->
+    <div class="row" style="margin-top: 20px;">
+        <div class="xl9 offset-xl1" id="addFilter">
+
+            <h4 class="deep-orange-text">Add Filter</h4>
+
+            <div class="card-panel red-text lighten-1" id="addFilterErrors"></div>
+
+            <form class="col s12" method="post" id="addFilterForm">
+                <div class="row">
+                    <div class="input-field col s12 m6">
+                        <i class="mdi-editor-mode-edit blue-grey-text prefix"></i>
+                        <input id="name" type="text" class="validate" name="name" required="required">
+                        <label for="name">A name for the filter</label>
+                    </div>
+                    <div class="input-field col s12 m6">
+                        <i class="mdi-editor-mode-edit blue-grey-text prefix"></i>
+                        <input id="keywords" type="text" class="validate" name="keywords">
+                        <label for="keywords">Some keywords (eg: "google nexus 5x")</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12 m4 offset-m4">
+                        <select id="email_hour" name="email_hour" required="required">
+                            <option value="-1" selected>Do not want any email</option>
+                            {% for n in range(0, 24) %}
+                                <option value="{{ n }}">{{ n }}:00</option>
+                            {% endfor %}
+                        </select>
+                        <label for="email_hour">Send email at</label>
+                    </div>
+                </div>
+                <div class="col s12 buttons-row row">
+                    <button class="btn waves-effect waves-light right" type="submit" name="submit">
+                        Add
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div><!-- END Add new Filter -->
+
+
+
+{% endblock %}
+
+{% block endscript %}
+
+    <script type="text/javascript" src="/assets/js/filtersJs.js"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // $('#loading').hide();
+            $('select').material_select();
+            $('#addFilterErrors').hide();
+        });
+    </script>
+{% endblock %}

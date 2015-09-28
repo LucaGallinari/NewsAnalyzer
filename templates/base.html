@@ -27,39 +27,48 @@
             <ul id="dropdown1" class="dropdown-content" >
                 {% if url_logout %}
                     <li>
-                        <div><img src="{{ person_image_url }}" width="50" height="50"></div>
+                        <a href="https://www.google.com/accounts/b/0/IssuedAuthSubTokens">Revoke permissions</a>
                     </li>
-                    <li class="divider"></li>
                     <li>
-                        <a href="#">{{ person_name }}</a><br>
-                        <a href="#">{{ person_email }}</a>
+                        <a href="{{ url_logout|safe }}" class="waves-effect waves-orange">
+                            Logout<!--<i class="material-icons">power_settings_new</i>-->
+                        </a>
                     </li>
                 {% endif %}
-                <li class="bold">
-                    {% if url_login %}
-                    <a href="{{ url_login|safe }}" class="waves-effect waves-orange">
-                        Effettua il Login<!--<i class="material-icons">input</i>-->
-                    </a>
-                    {% else %}
-                    <a href="{{ url_logout|safe }}" class="waves-effect waves-orange">
-                        Logout<!--<i class="material-icons">power_settings_new</i>-->
-                    </a>
-                    {% endif %}
-                </li>
             </ul>
             <nav class="top-nav light-blue darken-1">
                 <div class="nav-wrapper">
                     <a href="/" class="brand-logo center"><img src="/assets/images/newsanalyzer.png" width="210px" height="55px" ></a>
                     <a href="#" data-activates="nav-mobile" class="button-collapse top-nav full"><i class="mdi-navigation-menu"></i></a>
                     <ul class="left hide-on-med-and-down">
-                        <!-- User dropdown -->
-                        <li>
-                            <a class="dropdown-button" href="#!" data-activates="dropdown1" data-beloworigin="true" data-constrainwidth="false">
-                                User Profile<i class="material-icons right">arrow_drop_down</i>
-                            </a>
-                        </li>
-                        <li><a href="#">Components</a></li>
-                        <li><a href="#">Other</a></li>
+
+                        {% if url_logout %}
+                            <!-- User dropdown -->
+                            <li>
+                                <a class="dropdown-button" href="#!" data-activates="dropdown1" data-beloworigin="true" data-constrainwidth="false">
+                                    <div>
+                                        <span style="display: inline-flex;vertical-align: middle;"><img src="{{ img_profile }}" width="50" height="50"></span>
+                                        <div style="display: inline-flex;vertical-align: middle;">{{ display_name }}</div>
+                                    </div>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li>
+                                <!-- Or Login -->
+                                <a href="{{ url_login|safe }}" class="waves-effect waves-orange">
+                                    Login with Google<!--<i class="material-icons">input</i>-->
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <!-- Filters -->
+                        {% if url_logout %}
+                        <li><a href="/filters">My Filters</a></li>
+                        <!-- Favorites -->
+                        <li><a href="/favorites">My Favorites</a></li>
+                        {% endif %}
+                        <!-- Favorites -->
+                        <li><a href="/about">About</a></li>
                     </ul>
                 </div>
             </nav>
@@ -68,6 +77,7 @@
         <main>
             <div class="col s12 m10 l8 offset-l2 offset-m1">
                 <div class="container">
+                    <br>
                     {% block content %}
                     Contenuto
                     {% endblock %}
@@ -80,10 +90,7 @@
                 <div class="row">
                     <div class="col l6 s12">
                         <h5 class="deep-orange-text text-lighten-3">About NewsAnalyzer</h5>
-                        <p class="grey-text text-lighten-4">NewsAnalyzer aims to be a simple project for easily manage domotic shutters.<br />
-                        This project is made for academic purposes using MaterializeCss and will always be completely open source.<br />
-                        If you want to see the source code please check out the GitHub repos.<br />
-                        For any other comunications feel free to contact the developers via mail.</p>
+                        <p class="grey-text text-lighten-4">TODO</p>
                     </div>
                     <div class="col l4 offset-l2 s12">
                         <h5 class="deep-orange-text text-lighten-3">Source Code Links</h5>
