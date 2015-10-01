@@ -62,13 +62,15 @@
                         {% endif %}
 
                         <!-- Filters -->
+                        <li {% if page=="index" %}class="active"{% endif %}><a href="/">Home</a></li>
+                        <li {% if page=="analyze" %}class="active"{% endif %}><a href="/analyze">Analyze</a></li>
                         {% if url_logout %}
-                        <li><a href="/filters">My Filters</a></li>
+                        <li {% if page=="filters" %}class="active"{% endif %}><a href="/filters">My Filters</a></li>
                         <!-- Favorites -->
-                        <li><a href="/favorites">My Favorites</a></li>
+                        <li {% if page=="favs" %}class="active"{% endif %}><a href="/favorites">My Favorites</a></li>
                         {% endif %}
-                        <!-- Favorites -->
-                        <li><a href="/about">About</a></li>
+                        <!-- About -->
+                        <li {% if page=="about" %}class="active"{% endif %}><a href="/about">About</a></li>
                     </ul>
                 </div>
             </nav>

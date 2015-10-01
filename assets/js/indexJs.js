@@ -61,7 +61,7 @@ $(document).ready(function(){
                         $(".waterfall").waterfall();
                         oTop = calculateOffsetFromTop();
                         lock = false;
-                    }, 1100);
+                    }, 1500);
                     $('#loading').hide();
                 });
             }
@@ -72,11 +72,80 @@ $(document).ready(function(){
     $('#filters').on('change', function() {
         $search.focusin();
         $search.val($(this).val());
+	});
 
+    /* - ADD FAVORITE - */
+    $newsWall.on('click', 'a.addfav', function() {
+        var $obj = $(this);
+        var $news = $obj.parent().parent().parent();
+        var $form = $news.find('form');
+        // do an ajax req
+        $.ajax({
+            type: "POST",
+            url: '/favorites',
+            data: $form.serialize() // serializes the form's elements.
+        })
+        .done(function( data ) {
+            data = data.toString();
+
+            if (data.indexOf("Ok")!=-1) { // if everything's ok
+                Materialize.toast('Favorite added!', 3000, 'rounded');
+                var id = data.substr(4, data.length-4);
+                changeFavoriteHTML(true, $obj, id);
+            } else { // display error
+                Materialize.toast('Ops! An error occured.', 3000, 'rounded');
+                Materialize.toast(data, 3000, 'rounded');
+            }
+        })
+        .fail(function () {
+            Materialize.toast('Ops! An error occured.', 3000, 'rounded');
+        });
+        return false;
 	});
 
 
+    /* - REMOVE FAVORITE - */
+    $newsWall.on('click', 'a.remfav', function() {
+        // pre ajax request
+        var id = $(this).attr('data-toggle');
+        $('#agreeRemove').attr('data-toggle', id);
+        $('#confirmModal').openModal();
+    });
+
+    $('.modal-footer').on('click', '#agreeRemove', function() {
+        var id = $(this).attr('data-toggle');
+        // do an ajax req
+        $.ajax({
+            type: "DELETE",
+            url: '/favorites?id='+id
+        })
+        .done(function( data ) {
+            data = data.toString();
+            if (data=="Ok") { // if everything's ok
+                Materialize.toast('Favorite removed!', 3000, 'rounded');
+                var $obj = $newsWall.find('a[data-toggle="'+id+'"]');
+                changeFavoriteHTML(false, $obj, id);
+            } else { // error
+                Materialize.toast('Ops! An error occured.', 3000, 'rounded');
+                Materialize.toast(data, 3000, 'rounded');
+            }
+        })
+        .fail(function () {
+            Materialize.toast('Ops! An error occured.', 3000, 'rounded');
+        });
+    });
+
     /* Functions */
+    function changeFavoriteHTML(add, $obj, id) {
+        if (add) {
+            $obj.removeClass('addfav').addClass('remfav');
+            $obj.attr('data-toggle', id);
+        } else {
+            $obj.removeClass('remfav').addClass('addfav');
+            $obj.removeAttr('data-toggle');
+        }
+    }
+
     function calculateOffsetFromTop() {
         return  parseInt($newsWall.offset().top) +
                 parseInt($newsWall.outerHeight(true)) -
@@ -84,8 +153,14 @@ $(document).ready(function(){
     }
 
     function addNews (news) {
+
         if (news.iurl == "")
             news.iurl = '/assets/images/img_not_available.png';
+        var d = news.date;
+        if (typeof(d)=="number") {// is it a number?
+            d = new Date(d);
+            news.date = convertTimestamp(d);
+        }
         var htmlEl =
             '<div class="news s4 m3"> \
                 <div class="card hoverable"> \
@@ -112,50 +187,53 @@ $(document).ready(function(){
                         <p>'+ news.domain +'</p> \
                         <p>'+ news.date +'</p> \
                     </div> \
+                    <div class="card-action"> \
+                        <p class="card-footer">';
+        if (news.hasOwnProperty('favorite')) {
+            htmlEl +=       '<a class="remfav left" href="#" data-toggle="'+news.favorite+'"><i class="material-icons">grade</i></a>';
+        } else {
+            htmlEl +=       '<a class="addfav left" href="#"><i class="material-icons">grade</i></a>';
+        }
+            htmlEl +=       '<a class="right" href="#">Analyze</a>\
+                        </p> \
+                    </div> \
+                    <form class="hide"> \
+                        <input type="hidden" name="title" value="'+ news.title +'"> \
+                        <input type="hidden" name="kwic" value="'+ news.kwic +'"> \
+                        <input type="hidden" name="url" value="'+ news.url +'"> \
+                        <input type="hidden" name="iurl" value="'+ news.iurl +'"> \
+                        <input type="hidden" name="author" value="'+ news.author +'"> \
+                        <input type="hidden" name="domain" value="'+ news.domain +'"> \
+                        <input type="hidden" name="date" value="'+ news.date +'"> \
+                    </form> \
                 </div> \
             </div>';
         $(htmlEl).hide().appendTo('#newsWall').fadeIn(1000);
     }
 
+    /* https://gist.github.com/kmaida/6045266 */
+    function convertTimestamp(timestamp) {
+        var d = new Date(timestamp),	// Convert the passed timestamp to milliseconds
+            yyyy = d.getFullYear(),
+            mm = ('0' + (d.getMonth() + 1)).slice(-2),	// Months are zero based. Add leading 0.
+            dd = ('0' + d.getDate()).slice(-2),			// Add leading 0.
+            hh = d.getHours(),
+            h = hh,
+            min = ('0' + d.getMinutes()).slice(-2),		// Add leading 0.
+            ampm = 'AM',
+            time;
+        if (hh > 12) {
+            h = hh - 12;
+            ampm = 'PM';
+        } else if (hh === 12) {
+            h = 12;
+            ampm = 'PM';
+        } else if (hh == 0) {
+            h = 12;
+        }
 
-
-
-
-    /* - ADD HOME -
-    $(addHomeForm).on('submit', function() {
-        // pre ajax request
-        var buttonsRow = $(addHomeForm).find('.buttons-row').first();
-        buttonsRow.find('button').hide();
-        buttonsRow.append(preloader_wrapper('right'));
-
-        // do an ajax req
-        $.ajax({
-            type: "POST",
-            url: "/homes/add",
-            data: $(this).serialize() // serializes the form's elements.
-        })
-        .done(function( data ) {
-            data = data.toString();
-            // rollback
-            buttonsRow.find('.preloader-wrapper').remove();
-            buttonsRow.find('button').show();
-            toggleBottomCard('#new-home');
-
-            if (data.indexOf("Ok")!=-1) { // if everything's ok
-                Materialize.toast('Home added!', 3000, 'rounded');
-                var id = data.substr(4, data.length-4);
-                addListElement(id);
-                $(addHomeForm).trigger("reset");
-                // hide errors
-                if ($('.removeHome').length==1) {
-                    $(listHomes).show();
-                    $('#noHomes').hide(500);
-                }
-            } else { // display error
-                Materialize.toast('Ops! An error occured.', 3000, 'rounded');
-                $('#addHomeErrors').html(data).fadeIn();
-            }
-        });
-        return false; // avoid to execute the actual submit of the form.
-    });*/
+        // ie: 2013-02-18, 8:35 AM
+        time = yyyy + '-' + mm + '-' + dd + ' ' + h + ':' + min + ' ' + ampm;
+        return time;
+    }
 });

@@ -7,6 +7,7 @@ import httplib2
 import webapp2
 import jinja2
 import json
+import datetime
 
 # GOOGLE
 from google.appengine.api import users
@@ -34,7 +35,7 @@ youtube = build('youtube', 'v3', developerKey='AIzaSyCWKe3sGVhfTmaYCvPf2jW-d_2QL
 
 JINJA_ENVIRONMENT = jinja2.Environment(
 	loader=jinja2.PackageLoader('main', 'templates'),
-	extensions=['jinja2.ext.autoescape'],
+	extensions=['jinja2.ext.autoescape', 'jinja2.ext.loopcontrols'],
 	autoescape=True)
 
 
@@ -107,30 +108,33 @@ class IndexHandler(webapp2.RequestHandler):
 
 		if is_logged():
 			template_values = get_person_session_values()
+
+			# Retrieve filters from DB
+			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
+			filters = []
+			for f in q:
+				fil = {
+					'id': f.key.id(),
+					'name': f.name,
+					'keywords': f.keywords,
+					'email_hour': f.email_hour,
+				}
+				filters.append(fil)
+			template_values['filters'] = filters
+
 		else:
 			template_values['url_login'] = users.create_login_url("/auth_google")
 
 		# Search by keywords?
 		search = self.request.get('search')
-		if search == '':
-			search = None
-		else:
+		if search != '':
 			template_values['search'] = search
 
-		# Retrieve news
-		freq = faroo.Faroo()
-		data = freq.param('src', 'news').query(False, search)
-
-		# No news found?
-		if hasattr(data, 'results'):
-			if data.results is None:
-				template_values['news'] = []
-			else:
-				template_values['news'] = data.results
-		else:
-			template_values['news'] = []
+		nh = NewsHandler(False)
+		template_values['news'] = nh.get_news(search)
 
 		# Render template and return
+		template_values['page'] = "index"
 		template = JINJA_ENVIRONMENT.get_template('index.html')
 		self.response.write(template.render(template_values))
 
@@ -156,6 +160,7 @@ class FiltersHandler(webapp2.RequestHandler):
 			template_values['filters'] = filters
 
 			# Render template and return
+			template_values['page'] = "filters"
 			template = JINJA_ENVIRONMENT.get_template('filters.html')
 			self.response.write(template.render(template_values))
 
@@ -270,43 +275,259 @@ class FavoritesHandler(webapp2.RequestHandler):
 		else:
 			template_values = get_person_session_values()
 
+			# Retrieve favorites from DB
+			q = DBFavorite.query(DBFavorite.owner == template_values['email']).fetch()
+			favs = []
+			for f in q:
+				fav = {
+					'id': f.key.id(),
+					'title': f.title,
+					'kwic': f.kwic,
+					'url': f.url,
+					'imgurl': f.iurl,
+					'author': f.author,
+					'domain': f.domain,
+					'date': f.date,
+					'add_date': f.add_date
+				}
+				favs.append(fav)
+			template_values['favs'] = favs
+
 			# Render template and return
+			template_values['page'] = "favs"
 			template = JINJA_ENVIRONMENT.get_template('favorites.html')
 			self.response.write(template.render(template_values))
 
+	# POST for INSERT
+	def post(self):
+		if not is_logged():
+			self.response.write("You are not logged!")
+		else:
+			# Retrieve data
+			session = get_current_session()
+			title = self.request.get('title')
+			kwic = self.request.get('kwic')
+			url = self.request.get('url')
+			iurl = self.request.get('iurl')
+			author = self.request.get('author')
+			domain = self.request.get('domain')
+			date = self.request.get('date')
+
+			# Some checks
+			if title == "" or kwic == "" or url == "":
+				self.response.write("One or more required field/s is/are empty!")
+				return
+			if date != "":
+				try:
+					# date is a long number? so it's a timestamp
+					date_l = long(date)
+					date = datetime.datetime.fromtimestamp(date_l).strftime('%Y-%m-%d %H:%M:%S')
+				except ValueError:
+					# it's a string, useless command below
+					date = str(date)
+
+			# Save the favorite
+			my_fav = DBFavorite(
+				owner=session['email'],
+				title=title,
+				kwic=kwic,
+				url=url,
+				iurl=iurl,
+				author=author,
+				domain=domain,
+				date=date
+			)
+			key = my_fav.put()
+			self.response.write("Ok: " + str(key.id()))
+
+	# DELETE for DELETE
+	def delete(self):
+		if not is_logged():
+			self.response.write("You are not logged!")
+		else:
+			session = get_current_session()
+			fav_id = self.request.get('id')
+			if fav_id is None:
+				self.response.write("ID not specified!")
+				return
+			if fav_id == "":
+				self.response.write("ID is empty!")
+				return
+
+			try:
+				fav_id = long(fav_id)
+			except ValueError:
+				self.response.write("ID is not a valid integer!")
+				return
+			DBFavorite(id=fav_id, owner=session['email']).key.delete()
+			self.response.write("Ok")
 
 
+class NewsHandler:
+	json = False
 
-#OTHERS
-class FarooAPI(webapp2.RequestHandler):
-	def get(self):
-		# Get params
-		search = self.request.get('search')
-		start = self.request.get("start")
+	def __init__(self, retjson):
+		self.json = retjson
+
+	def get_news(self, search='', start=0):
+		favs = []
+
+		# Retrieve favorites from DB
+		if is_logged():
+			session = get_current_session()
+			q = DBFavorite.query(DBFavorite.owner == session['email']).fetch()
+			for f in q:
+				favs.append({'id': f.key.id(), 'url': f.url})
+
+		# Search by keywords?
 		if search == '':
 			search = None
-
+		if start == '':
+			start = 0
 		# Retrieve news
 		freq = faroo.Faroo()
-		data = freq.param('src', 'news').param('start', start).query(True, search)
+		data = freq.param('src', 'news').param('start', start).query(self.json, search)
 
+		# if the data retrieved are in json format, decode them
+		if self.json:
+			# Data is a DICT
+			data = json.loads(data)
+			# No news found?
+			if 'results' in data:
+				news = data['results']
+				for n in news:
+					# check if favorite
+					if len(favs) != 0:
+						for f in favs:
+							if f['url'] == n['url']:
+								n['favorite'] = f['id']
+					# adjust datetime if it's a timestamp
+					if type(n['date']) is not datetime.datetime:
+						try:
+							# date is a long number? so it's a timestamp
+							date_l = long(n['date'])
+							n['date'] = datetime.datetime.fromtimestamp(date_l).strftime('%Y-%m-%d %H:%M:%S')
+						except ValueError:
+							# it's a string, useless command below
+							n['date'] = str(n['date'])
+			else:
+				news = []
+		else:
+			# Data is a LIST
+			# No news found?
+			if hasattr(data, 'results'):
+				if data.results is None:
+					news = []
+				else:
+					news = data.results
+					for n in news:
+						# check if favorite
+						if len(favs) != 0:
+							for f in favs:
+								if f['url'] == n.url:
+									n.favorite = f['id']
+						# adjust datetime if it's a timestamp
+						if type(n.date) is not datetime.datetime:
+							try:
+								# date is a long number? so it's a timestamp
+								date_l = long(n.date)
+								n.date = datetime.datetime.fromtimestamp(date_l).strftime('%Y-%m-%d %H:%M:%S')
+							except ValueError:
+								# it's a string, useless command below
+								n.date = str(n.date)
+			else:
+				news = []
+
+		# must return json formatted data
+		if self.json:
+			news = json.dumps(data)
+
+		return news
+
+
+class FarooAPI(webapp2.RequestHandler):
+	def get(self):
+		search = self.request.get('search')
+		start = self.request.get("start")
+		nh = NewsHandler(True)
+		data = nh.get_news(search, start)
 		self.response.write(data)
 
 
-class Dandelion(webapp2.RequestHandler):
+class AnalyzeHandler(webapp2.RequestHandler):
 	def get(self):
-		datatxt = DataTXT(app_id='ff66f767', app_key='e22401da7ae5647cb5b7070dea5e0e7f')
-		data = datatxt.nex(
-			'Link notizia',
-			include_categories=True,
-			include_types=True
-		)
-		template_values = {
-			'news': data.annotations
-		}
-		template = JINJA_ENVIRONMENT.get_template('dandelion.html')
+		template_values = {}
+
+		if is_logged():
+			template_values = get_person_session_values()
+
+		url = self.request.get('url')
+		if url is not None:
+			if url != '':
+				# if url != '':
+				# some url checks
+				datatxt = DataTXT(app_id='ff66f767', app_key='e22401da7ae5647cb5b7070dea5e0e7f')
+				data = datatxt.nex(
+					url,
+					# include_categories=True,
+					include_types=True,
+					include_abstract=True,
+					include_image=True
+				)
+				if hasattr(data, 'annotations'):
+					data = data.annotations
+					idlist = []
+					newdata = []
+					# loop entities
+					for e in data:
+						# if already present in the new list don't add again
+						# so i get rid of duplicates that Dandelion put in the list
+						add = True
+						if hasattr(e, 'id'):
+							if e.id in idlist:
+								add = False
+							else:
+								add = True
+								idlist.append(e.id)
+						if add:
+							# loop types
+							if hasattr(e, 'types'):
+								if len(e.types) != 0:
+									for t in e.types:
+										if 'Person' in t:
+											e.categ = 'Person'
+											break
+										elif 'Organisation' in t:
+											e.categ = 'Organisation'
+											break
+										elif 'Place' in t:
+											e.categ = 'Place'
+											break
+										elif 'CelestialBody' in t:
+											e.categ = 'Space'
+											break
+										elif 'Event' in t:
+											e.categ = 'Event'
+											break
+										else:
+											e.categ = 'Concept'
+								else:
+									e.categ = 'Concept'
+							else:
+								e.categ = 'Concept'
+							newdata.append(e)
+					template_values['data'] = newdata
+				else:
+					template_values['data'] = []
+				template_values['url'] = url
+
+		# Render template and return
+		template_values['page'] = "analyze"
+		template = JINJA_ENVIRONMENT.get_template('analyze.html')
 		self.response.write(template.render(template_values))
 
+
+# OTHERS
 
 class Flickr(webapp2.RequestHandler):
 	def get(self):
@@ -457,9 +678,10 @@ routes = [
 	('/filters', FiltersHandler),
 	('/favorites', FavoritesHandler),
 	('/api/faroo', FarooAPI),
+	('/analyze', AnalyzeHandler),
+
 	('/flickr', Flickr),
 	('/youtube', Youtube),
-	('/dandelion', Dandelion),
 	('/logout', Logout),
 	('/auth_google', GoogleAuthorization),
 	(DECORATOR.callback_path, DECORATOR.callback_handler())]

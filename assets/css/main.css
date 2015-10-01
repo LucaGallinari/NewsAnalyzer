@@ -20,6 +20,36 @@ header, main, footer{padding-left: 0;}
 .news .descr {}
 .news .foot {}
 
+#newsWall .card-footer a {
+    color:#222222;
+}
+
+#newsWall .card-footer a.remfav {
+    color:#ffab40;
+}
+.collapsible-header {
+    padding:0;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+}
+.collapsible-header .category {
+    -webkit-border-top-right-radius: 5px;
+    -webkit-border-bottom-right-radius: 5px;
+    -moz-border-radius-topright: 5px;
+    -moz-border-radius-bottomright: 5px;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    color:#eee;
+}
+.collapsible-header > div {display:inline-block;padding:0 1em;}
+.collapsible-header .cat-person {background-color:#D32F2F;}
+.collapsible-header .cat-organisation {background-color:#0089ec;}
+.collapsible-header .cat-place {background-color:#388E3C;}
+.collapsible-header .cat-space {background-color:#5a5a5a;}
+.collapsible-header .cat-event {background-color:#ba68c8;}
+.collapsible-header .cat-concept {background-color:#ff8f00;}
+
 /* side bar */
 #nav-mobile i {
     font-size: 1.4em;

@@ -16,9 +16,11 @@
                 <div class="input-field col s3">
                     <select id="filters">
                         <option value="" disabled selected>Select a filter</option>
-                        <option value="google ciao">Option 1</option>
-                        <option value="google nexus 2015">Option 2</option>
-                        <option value="non saprei">Option 3</option>
+                        {% if filters|length != 0 %}
+                            {% for f in filters %}
+                                <option value="{{ f.keywords }}">{{ f.name }}</option>
+                            {% endfor %}
+                        {% endif %}
                     </select>
                     <label for="filters">Materialize Select</label>
                 </div>
@@ -47,7 +49,7 @@
                     <div class="card hoverable">
                         <div class="card-image">
                             <a href="{{ n.url }}" target="_blank">
-                                {% if n.iurl != ''%}
+                                {% if n.iurl != '' %}
                                     {% if n.iurl|ccontains("youtube.com") %}
                                         <div class="video-container">
                                             <iframe src="{{ n.iurl }}" frameborder="0" allowfullscreen></iframe>
@@ -67,10 +69,32 @@
                             <div class="descr">{{ n.kwic|safe }}</div>
                         </div>
                         <div class="card-action">
-                            <p>{{ n.author }}</p>
-                            <p>{{ n.domain }}</p>
+                            <p>{{ n.author }} - {{ n.domain }}</p>
                             <p>{{ n.date }}</p>
                         </div>
+                        <div class="card-action">
+                            <p class="card-footer">
+                                {% if n.favorite is defined %}
+                                <a class="remfav" href="#" data-toggle="{{ n.favorite }}">
+                                    <i class="material-icons">grade</i>
+                                </a>
+                                {% else %}
+                                <a class="addfav" href="#">
+                                    <i class="material-icons">grade</i>
+                                </a>
+                                {% endif %}
+                                <a href="/analyze?url={{ n.url }}">Analyze</a>
+                            </p>
+                        </div>
+                        <form class="hide">
+                            <input type="hidden" name="title" value="{{ n.title }}">
+                            <input type="hidden" name="kwic" value="{{ n.kwic|safe }}">
+                            <input type="hidden" name="url" value="{{ n.url }}">
+                            <input type="hidden" name="iurl" value="{{ n.iurl }}">
+                            <input type="hidden" name="author" value="{{ n.author }}">
+                            <input type="hidden" name="domain" value="{{ n.domain }}">
+                            <input type="hidden" name="date" value="{{ n.date }}">
+                        </form>
                     </div>
                 </div>
             {% endfor %}
@@ -79,6 +103,22 @@
     </div>
     <div id="loading" class="progress row">
         <div class="indeterminate"></div>
+    </div>
+
+    <!-- Remove Favorite Confirm Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h4 class="deep-orange-text">Delete Favorite</h4>
+            <p class="flow-text">You are removing a favorite! You won't be able to undo that.</p>
+        </div>
+        <div class="modal-footer">
+            <a class="modal-action modal-close waves-effect waves-green btn-flat deep-orange-text right" id="agreeRemove">
+                Agree
+            </a>
+            <a href="#" class="modal-action modal-close waves-effect waves-red btn-flat left" id="disagreeRemove">
+                Disagree
+            </a>
+        </div>
     </div>
 
 {% endblock %}
@@ -94,7 +134,7 @@
                 // sometimes fails if called on ready
                 setTimeout(function () {
                     $(".waterfall").waterfall();
-                }, 500);
+                }, 1000);
             });
         </script>
     {% endif %}
