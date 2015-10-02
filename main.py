@@ -527,36 +527,45 @@ class AnalyzeHandler(webapp2.RequestHandler):
 		self.response.write(template.render(template_values))
 
 
-# OTHERS
-
-class Flickr(webapp2.RequestHandler):
+class FlickrAPI(webapp2.RequestHandler):
 	def get(self):
-		params = {
-			'method': 'flickr.photos.search',
-			'api_key': '902df328add6e1df503ca3c61f146216',
-			# 'secret': '26bd5a1a656ee460',
-			'text': 'Linkin Park',
-			# 'tag_mode ': 'all',
-			'sort': 'relevance',
-			'per_page': '10',
-			'format': 'json',
-			'nojsoncallback': '1'
-		}
+		# gets
+		label = self.request.get('label')
+		per_page = self.request.get('per_page')
+		page = self.request.get('page')
 
-		url = 'https://api.flickr.com/services/rest/'
-		params = urllib.urlencode(params)
-		url = '?'.join([url, params])
-		resp = urllib.urlopen(url)
-		data = resp.read().decode('utf-8')
-		data = json.loads(data)
+		# checks
+		if per_page is None or per_page == '':
+			per_page = 5
+		if page is None or page == '':
+			page = 1
 
-		template_values = {
-			'imgs': data
-		}
-		template = JINJA_ENVIRONMENT.get_template('flickr.html')
-		self.response.write(template.render(template_values))
+		if label != '':
+			params = {
+				'method': 'flickr.photos.search',
+				'api_key': '902df328add6e1df503ca3c61f146216',
+				# 'secret': '26bd5a1a656ee460',
+				# 'tag_mode ': 'all',
+				'sort': 'relevance',
+				'format': 'json',
+				'nojsoncallback': '1',
+				'text': label,
+				'page': page,
+				'per_page': per_page
+			}
+
+			url = 'https://api.flickr.com/services/rest/'
+			params = urllib.urlencode(params)
+			url = '?'.join([url, params])
+			resp = urllib.urlopen(url)
+			data = resp.read().decode('utf-8')
+			# data = json.loads(data)
+			self.response.write(data)
+		else:
+			self.response.write("")
 
 
+# OTHER ###################
 class Youtube(webapp2.RequestHandler):
 	def get(self):
 
@@ -580,6 +589,7 @@ class Youtube(webapp2.RequestHandler):
 		}
 		template = JINJA_ENVIRONMENT.get_template('youtube.html')
 		self.response.write(template.render(template_values))
+###################
 
 
 class GoogleNews(webapp2.RequestHandler):
@@ -677,13 +687,13 @@ routes = [
 	('/', IndexHandler),
 	('/filters', FiltersHandler),
 	('/favorites', FavoritesHandler),
-	('/api/faroo', FarooAPI),
 	('/analyze', AnalyzeHandler),
-
-	('/flickr', Flickr),
-	('/youtube', Youtube),
+	('/api/faroo', FarooAPI),
+	('/api/flickr', FlickrAPI),
 	('/logout', Logout),
 	('/auth_google', GoogleAuthorization),
+
+	('/youtube', Youtube),
 	(DECORATOR.callback_path, DECORATOR.callback_handler())]
 
 app = webapp2.WSGIApplication(routes=routes, debug=True)

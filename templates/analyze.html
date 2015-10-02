@@ -36,18 +36,20 @@
                         <div>
                             <ul class="collapsible popout" data-collapsible="accordion">
                             {% for item in data %}
-                                <li>
-                                    <div class="collapsible-header">
+                                <li class="entity">
+                                    <div class="collapsible-header" data-index="{{ loop.index }}" data-label="{{ item.label }}">
                                         {% if 'categ' in item %}
                                         <div class="category cat-{{ item.categ|lower }}">{{ item.categ }}</div>
                                         {% endif %}
-                                        <div>{{ item.label }}</div>
+                                        <div><h6>{{ item.label }}</h6></div>
                                     </div>
                                     <div class="collapsible-body">
                                         <div class="row">
                                             <div class="col s4">
                                                 {% if 'thumbnail' in item.image %}
-                                                <img src="{{ item.image.thumbnail }}">
+                                                <img src="{{ item.image.thumbnail }}" onerror="this.onerror=null;this.src='/assets/images/img_not_available.png';">
+                                                {% else %}
+                                                <img src="/assets/images/img_not_available.png">
                                                 {% endif %}
                                             </div>
                                             <div class="col s8">
@@ -55,10 +57,20 @@
                                                 <div><a href="{{ item.uri }}" target="_blank">More..</a></div>
                                             </div>
                                         </div>
+                                        <div class="row">
+                                            <div class="col s12">
+                                                <div id="loading-{{loop.index}}" class="progress row">
+                                                    <div class="indeterminate"></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a class="more-images" href="#" data-index="{{ loop.index }}" data-label="{{ item.label }}">More images..</a>
+                                            </div>
+                                        </div>
                                         {% if 'types' in item %}
                                         <div class="row">
-                                            <div>Types</div>
-                                            <small>
+                                            <div class="col s12">Types</div>
+                                            <small class="col s12">
                                                 <ul>
                                                 {% for k in item.types %}
                                                     <li>{{ k }}</li>
@@ -87,6 +99,7 @@
     <script type="text/javascript">
         $(document).ready(function() {
             $('select').material_select();
+            $('.progress').hide();
         });
     </script>
 {% endblock %}
