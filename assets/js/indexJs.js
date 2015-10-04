@@ -194,7 +194,7 @@ $(document).ready(function(){
         } else {
             htmlEl +=       '<a class="addfav left" href="#"><i class="material-icons">grade</i></a>';
         }
-            htmlEl +=       '<a class="right" href="#">Analyze</a>\
+            htmlEl +=       '<a class="right" href="/analyze?url='+ news.url +'">Analyze</a> \
                         </p> \
                     </div> \
                     <form class="hide"> \

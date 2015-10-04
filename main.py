@@ -173,21 +173,16 @@ class FiltersHandler(webapp2.RequestHandler):
 			session = get_current_session()
 			name = self.request.get('name')
 			keywords = self.request.get('keywords')
-			email_hour = self.request.get('email_hour')
+			email_hour = self.request.get('email_hour', -1)
 
 			# Some checks
 			if name == "":
 				self.response.write("Name field is empty!")
 				return
-			if keywords is None:
-				keywords = ""
-			if email_hour == "":
+			try:
+				email_hour = int(email_hour)
+			except ValueError:
 				email_hour = -1
-			else:
-				try:
-					email_hour = int(email_hour)
-				except ValueError:
-					email_hour = -1
 
 			# Save the filter
 			my_filter = DBFilter(
@@ -347,11 +342,8 @@ class FavoritesHandler(webapp2.RequestHandler):
 		else:
 			session = get_current_session()
 			fav_id = self.request.get('id')
-			if fav_id is None:
-				self.response.write("ID not specified!")
-				return
 			if fav_id == "":
-				self.response.write("ID is empty!")
+				self.response.write("ID not specified!")
 				return
 
 			try:
@@ -379,16 +371,11 @@ class NewsHandler:
 			for f in q:
 				favs.append({'id': f.key.id(), 'url': f.url})
 
-		# Search by keywords?
-		if search == '':
-			search = None
-		if start == '':
-			start = 0
 		# Retrieve news
 		freq = faroo.Faroo()
 		data = freq.param('src', 'news').param('start', start).query(self.json, search)
 
-		# if the data retrieved are in json format, decode them
+		# if retrieved data are in json format, decode them
 		if self.json:
 			# Data is a DICT
 			data = json.loads(data)
@@ -448,7 +435,7 @@ class NewsHandler:
 class FarooAPI(webapp2.RequestHandler):
 	def get(self):
 		search = self.request.get('search')
-		start = self.request.get("start")
+		start = self.request.get('start', 0)
 		nh = NewsHandler(True)
 		data = nh.get_news(search, start)
 		self.response.write(data)
@@ -462,64 +449,66 @@ class AnalyzeHandler(webapp2.RequestHandler):
 			template_values = get_person_session_values()
 
 		url = self.request.get('url')
-		if url is not None:
-			if url != '':
-				# if url != '':
-				# some url checks
-				datatxt = DataTXT(app_id='ff66f767', app_key='e22401da7ae5647cb5b7070dea5e0e7f')
-				data = datatxt.nex(
-					url,
-					# include_categories=True,
-					include_types=True,
-					include_abstract=True,
-					include_image=True
-				)
-				if hasattr(data, 'annotations'):
-					data = data.annotations
-					idlist = []
-					newdata = []
-					# loop entities
-					for e in data:
-						# if already present in the new list don't add again
-						# so i get rid of duplicates that Dandelion put in the list
-						add = True
-						if hasattr(e, 'id'):
-							if e.id in idlist:
-								add = False
-							else:
-								add = True
-								idlist.append(e.id)
-						if add:
-							# loop types
-							if hasattr(e, 'types'):
-								if len(e.types) != 0:
-									for t in e.types:
-										if 'Person' in t:
-											e.categ = 'Person'
-											break
-										elif 'Organisation' in t:
-											e.categ = 'Organisation'
-											break
-										elif 'Place' in t:
-											e.categ = 'Place'
-											break
-										elif 'CelestialBody' in t:
-											e.categ = 'Space'
-											break
-										elif 'Event' in t:
-											e.categ = 'Event'
-											break
-										else:
-											e.categ = 'Concept'
-								else:
-									e.categ = 'Concept'
+
+		if url != '':
+			# some url checks
+			datatxt = DataTXT(app_id='ff66f767', app_key='e22401da7ae5647cb5b7070dea5e0e7f')
+			data = datatxt.nex(
+				url,
+				# include_categories=True,
+				include_types=True,
+				include_abstract=True,
+				include_image=True
+			)
+			if hasattr(data, 'annotations'):
+				data = data.annotations
+				idlist = []
+				newdata = []
+				# loop entities
+				for e in data:
+					# if already present in the new list don't add again
+					# so i get rid of duplicates that Dandelion put in the list
+					add = True
+					if hasattr(e, 'id'):
+						if e.id in idlist:
+							add = False
+						else:
+							add = True
+							idlist.append(e.id)
+					if add:
+						# loop types
+						if hasattr(e, 'types'):
+							if len(e.types) != 0:
+								for t in e.types:
+									if 'Person' in t:
+										e.categ = 'Person'
+										break
+									elif 'Organisation' in t:
+										e.categ = 'Organisation'
+										break
+									elif 'Place' in t:
+										e.categ = 'Place'
+										break
+									elif 'CelestialBody' in t:
+										e.categ = 'Space'
+										break
+									elif 'Event' in t:
+										e.categ = 'Event'
+										break
+									elif 'Film' in t:
+										e.categ = 'Film'
+										break
+									else:
+										e.categ = 'Concept'
 							else:
 								e.categ = 'Concept'
-							newdata.append(e)
-					template_values['data'] = newdata
-				else:
-					template_values['data'] = []
-				template_values['url'] = url
+						else:
+							e.categ = 'Concept'
+						newdata.append(e)
+				template_values['data'] = newdata
+			else:
+				template_values['data'] = []
+			template_values['url'] = url
 
 		# Render template and return
 		template_values['page'] = "analyze"
@@ -531,14 +520,8 @@ class FlickrAPI(webapp2.RequestHandler):
 	def get(self):
 		# gets
 		label = self.request.get('label')
-		per_page = self.request.get('per_page')
-		page = self.request.get('page')
-
-		# checks
-		if per_page is None or per_page == '':
-			per_page = 5
-		if page is None or page == '':
-			page = 1
+		per_page = self.request.get('per_page', 5)
+		page = self.request.get('page', 1)
 
 		if label != '':
 			params = {
@@ -559,37 +542,26 @@ class FlickrAPI(webapp2.RequestHandler):
 			url = '?'.join([url, params])
 			resp = urllib.urlopen(url)
 			data = resp.read().decode('utf-8')
-			# data = json.loads(data)
 			self.response.write(data)
 		else:
 			self.response.write("")
 
 
-# OTHER ###################
-class Youtube(webapp2.RequestHandler):
+class YoutubeAPI(webapp2.RequestHandler):
 	def get(self):
-
-		search_response = youtube.search().list(
-			q="Linkin Park",
-			part="id,snippet",
-			maxResults=5
-		).execute()
-
-		videos = []
-
-		for search_result in search_response.get("items", []):
-			if search_result["id"]["kind"] == "youtube#video":
-				videos.append({
-					'title': search_result["snippet"]["title"],
-					'id': search_result["id"]["videoId"]
-				})
-
-		template_values = {
-			'videos': videos
-		}
-		template = JINJA_ENVIRONMENT.get_template('youtube.html')
-		self.response.write(template.render(template_values))
-###################
+		# gets
+		search = self.request.get('search')
+		if search != '':
+			search_response = youtube.search().list(
+				q=search,
+				part="id,snippet",
+				maxResults=3,
+				type="video"
+			).execute()
+			data = json.dumps(search_response.get("items", []))
+			self.response.write(data)
+		else:
+			self.response.write('[]')
 
 
 class GoogleNews(webapp2.RequestHandler):
@@ -690,10 +662,9 @@ routes = [
 	('/analyze', AnalyzeHandler),
 	('/api/faroo', FarooAPI),
 	('/api/flickr', FlickrAPI),
+	('/api/youtube', YoutubeAPI),
 	('/logout', Logout),
 	('/auth_google', GoogleAuthorization),
-
-	('/youtube', Youtube),
 	(DECORATOR.callback_path, DECORATOR.callback_handler())]
 
 app = webapp2.WSGIApplication(routes=routes, debug=True)

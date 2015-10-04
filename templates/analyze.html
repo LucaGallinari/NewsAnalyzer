@@ -4,8 +4,40 @@
     <title>News Analyzer - Analyze</title>
 {% endblock %}
 
+{% block css %}
+    <link rel="stylesheet" type="text/css" href="/assets/css/jqcloud.css" />
+{% endblock %}
 
 {% block js %}
+    <script type="text/javascript" src="/assets/js/jqcloud-1.0.4.min.js"></script>
+
+    <script type="text/javascript">
+
+        function clickOnTag(id) {
+            var $ent = $('#entity-'+id);
+            $('html, body').animate({
+                scrollTop: $ent.offset().top
+            }, 100);
+            $ent.find('.collapsible-header').first().click();
+            // scrollTo(, { duration: 100});
+        }
+        /*!
+        * Create an array of word objects, each representing a word in the cloud
+        */
+        var word_array = [
+            {% for item in data %}
+                {
+                    text: "{{ item.label|safe }}",
+                    weight: {{ item.confidence*item.confidence }},
+                    html: {class:"cat-{{ item.categ|lower }}"},
+                    handlers: {click: function() {clickOnTag({{ item.id }});}}
+                },
+            {% endfor %}
+            // ...as many words as you want
+        ];
+
+
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -27,20 +59,27 @@
                     </form>
                 </div>
 
+                <div class="row">
+
                 {% if data is defined %}
                     {% if data|length == 0 %}
                         <div class="card-panel red-text lighten-1">
                             Non è stato possibile analizzare la notizia. Prova con un'altra!
                         </div>
                     {% else %}
+
                         <div>
+                            <div>
+                                <div id="loading_cloud" class="progress row center">
+                                    <div class="indeterminate"></div>
+                                </div>
+                                <div id="entitiesCloud" style="width: 100%; height: 400px;margin:0 auto;"></div>
+                            </div>
                             <ul class="collapsible popout" data-collapsible="accordion">
                             {% for item in data %}
-                                <li class="entity">
-                                    <div class="collapsible-header" data-index="{{ loop.index }}" data-label="{{ item.label }}">
-                                        {% if 'categ' in item %}
+                                <li class="entity" id="entity-{{ item.id }}">
+                                    <div class="collapsible-header" data-index="{{ loop.index }}" data-label="{{ item.label|safe }}" data-categ="{{ item.categ|lower }}">
                                         <div class="category cat-{{ item.categ|lower }}">{{ item.categ }}</div>
-                                        {% endif %}
                                         <div><h6>{{ item.label }}</h6></div>
                                     </div>
                                     <div class="collapsible-body">
@@ -56,17 +95,45 @@
                                                 <div>{{ item.abstract }}</div>
                                                 <div><a href="{{ item.uri }}" target="_blank">More..</a></div>
                                             </div>
+
                                         </div>
+                                        {% if item.categ|lower == "place" %}
+                                        <div class="row">
+                                            <div class="col s12 center">
+                                                <div id="loading_place-{{loop.index}}" class="progress row">
+                                                    <div class="indeterminate"></div>
+                                                </div>
+                                                <iframe width="500" height="300" frameborder="0" style="border:0"
+                                                        src="https://www.google.com/maps/embed/v1/place?q={{ item.label|safe }}&key=AIzaSyCWKe3sGVhfTmaYCvPf2jW-d_2QLEod7Rw" allowfullscreen></iframe>
+                                            </div>
+                                        </div>
+                                        {% endif %}
                                         <div class="row">
                                             <div class="col s12">
-                                                <div id="loading-{{loop.index}}" class="progress row">
+                                                <div id="loading_images-{{loop.index}}" class="progress row">
+                                                    <div class="indeterminate"></div>
+                                                </div>
+                                            </div>
+                                            <div class="center col s12">
+                                                <a class="more-images" href="#" data-index="{{ loop.index }}" data-label="{{ item.label|safe }}">
+                                                    <i class="material-icons">arrow_drop_down</i>
+                                                    Load more images
+                                                    <i class="material-icons">arrow_drop_down</i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {% if item.categ|lower == "event" or item.categ|lower == "film" %}
+                                        <div class="row">
+                                            <div class="col s12 youtube-container">
+                                                <div id="loading_videos-{{loop.index}}" class="progress row">
                                                     <div class="indeterminate"></div>
                                                 </div>
                                             </div>
                                             <div>
-                                                <a class="more-images" href="#" data-index="{{ loop.index }}" data-label="{{ item.label }}">More images..</a>
+                                                <a class="more-videos" href="#" data-index="{{ loop.index }}" data-label="{{ item.label|safe }}">More videos..</a>
                                             </div>
                                         </div>
+                                        {% endif %}
                                         {% if 'types' in item %}
                                         <div class="row">
                                             <div class="col s12">Types</div>
@@ -87,6 +154,7 @@
                     {% endif %}
                 {% endif %}
 
+            </div>
         </div>
     </div>
 
@@ -99,7 +167,14 @@
     <script type="text/javascript">
         $(document).ready(function() {
             $('select').material_select();
-            $('.progress').hide();
+            $('.entity .progress').hide();
+            setTimeout(function(){
+                $("#entitiesCloud").jQCloud(word_array, {
+                    afterCloudRender: function() {$('#loading_cloud').hide();},
+                    removeOverflowing: true
+                });
+
+            }, 200);
         });
     </script>
 {% endblock %}
