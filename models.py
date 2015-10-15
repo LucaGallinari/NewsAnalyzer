@@ -26,3 +26,9 @@ class DBFavorite(ndb.Model):
     domain = ndb.StringProperty(required=True)
     date = ndb.StringProperty(required=True)
     add_date = ndb.DateTimeProperty(auto_now_add=True)
+
+
+class DBAnalyzedURL(ndb.Model):
+    owner = ndb.StringProperty(indexed=True, required=True)
+    url = ndb.StringProperty(required=True)
+    add_date = ndb.DateTimeProperty(auto_now_add=True)

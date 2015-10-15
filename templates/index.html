@@ -4,8 +4,8 @@
     <title>News Analyzer - Home</title>
 {% endblock %}
 
-
 {% block js %}
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
 {% endblock %}
 
 {% block content %}
@@ -13,7 +13,7 @@
     <div class="row">
         <form class="col s12 m10 l8 offset-m1 offset-l2" method="GET">
             {% if url_logout %}
-                <div class="input-field col s3">
+                <div class="input-field col s12 m3">
                     <select id="filters">
                         <option value="" disabled selected>Select a filter</option>
                         {% if filters|length != 0 %}
@@ -25,12 +25,11 @@
                     <label for="filters">Materialize Select</label>
                 </div>
             {% endif %}
-            <div class="input-field col {% if url_logout %} s7 {%else%} s10 {%endif%}">
-                <i class="material-icons prefix">search</i>
+            <div class="input-field col s8 {% if url_logout %} m7 {%else%} m10 {%endif%}">
                 <input id="search" type="text" name="search" value="{{ search }}">
                 <label for="search">Type your keywords here (eg: "google nexus 2015")</label>
             </div>
-            <div class="col s2">
+            <div class="col s4 m2">
                 <button class="btn waves-effect waves-light" type="submit">
                     <i class="material-icons center">search</i>
                 </button>
@@ -38,7 +37,8 @@
         </form>
     </div>
 
-    <div id="newsWall" class="waterfall row" data-autoresize="true" data-col-min-width="350">
+
+    <div id="newsWall" class="waterfall row" data-autoresize="true" data-col-min-width="300">
         {% if news|length ==0 %}
             <div class="card-panel">
                 <h5 class="blue-text text-darken-2 valign">No treding news found. Check back later!</h5>
@@ -73,18 +73,23 @@
                             <p>{{ n.date }}</p>
                         </div>
                         <div class="card-action">
-                            <p class="card-footer">
-                                {% if n.favorite is defined %}
-                                <a class="remfav" href="#" data-toggle="{{ n.favorite }}">
-                                    <i class="material-icons">grade</i>
-                                </a>
-                                {% else %}
-                                <a class="addfav" href="#">
-                                    <i class="material-icons">grade</i>
-                                </a>
+                            <div class="card-footer">
+                                {% if url_logout %}
+                                    {% if n.favorite is defined %}
+                                    <a class="remfav" href="#" data-toggle="{{ n.favorite }}">
+                                        <i class="material-icons">grade</i> Remove favorite
+                                    </a>
+                                    {% else %}
+                                    <a class="addfav" href="#">
+                                        <i class="material-icons">grade</i> Add favorite
+                                    </a>
+                                    {% endif %}
                                 {% endif %}
-                                <a href="/analyze?url={{ n.url }}">Analyze</a>
-                            </p>
+                                <a class="right" href="/analyze?url={{ n.url }}">
+                                    <i class="material-icons">language</i> Analyze
+                                </a>
+                                <div class="g-plus" data-action="share" data-href="{{ n.url }}" data-height="24"></div>
+                            </div>
                         </div>
                         <form class="hide">
                             <input type="hidden" name="title" value="{{ n.title }}">
@@ -133,8 +138,8 @@
             $(document).ready(function() {
                 // sometimes fails if called on ready
                 setTimeout(function () {
-                    $(".waterfall").waterfall();
-                }, 1000);
+                    $(".waterfall").waterfall({autoresize: true});
+                }, 1500);
             });
         </script>
     {% endif %}

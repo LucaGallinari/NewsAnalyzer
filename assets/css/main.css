@@ -1,7 +1,7 @@
 body {
     display: flex;
     min-height: 100vh;
-    min-width:400px;
+    min-width:300px;
     flex-direction: column;
     margin: 0;
     padding: 0;
@@ -10,7 +10,14 @@ body {
 main {flex: 1 0 auto;}
 
 header, main, footer{padding-left: 0;}
-
+.modal {
+    overflow-y:visible;
+}
+/*
+a:hover {
+    color:#039be5;
+}
+*/
 /* News */
 #newsWall .news {
     margin-right:10px;
@@ -20,12 +27,56 @@ header, main, footer{padding-left: 0;}
 .news .descr {}
 .news .foot {}
 
-#newsWall .card-footer a {
-    color:#222222;
+
+#newsWall .card-image {
+    min-height:250px;
 }
-    #newsWall .card-footer a.remfav {
+
+#newsWall .card-footer {
+    min-height:60px;
+}
+    #newsWall .card-footer > div {
+        margin-top:10px;
+    }
+
+#newsWall .card-footer a {
+    display: inline-flex;
+    color:#333;
+    text-transform: none;
+    border:1px solid #ccc;
+    font-size:10pt;
+    padding:1px 4px;
+    /*border*/
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+    /*transitions*/
+    -webkit-transition: color 300ms ease;
+    -moz-transition: color 300ms ease;
+    -o-transition: color 300ms ease;
+    transition: color 300ms ease;
+}
+    #newsWall .card-footer a:hover,
+    #newsWall .card-footer a:hover > i {
         color:#ffab40;
     }
+    #newsWall .card-footer a > i {
+        color:#039be5;
+        font-size:20px;
+        /*transitions*/
+        -webkit-transition: color 300ms ease;
+        -moz-transition: color 300ms ease;
+        -o-transition: color 300ms ease;
+        transition: color 300ms ease;
+    }
+    #newsWall .card-footer a.remfav,
+    #newsWall .card-footer a.remfav > i {
+        color:#ffab40;
+    }
+        #newsWall .card-footer a.remfav:hover,
+        #newsWall .card-footer a.remfav:hover > i {
+            color:#333;
+        }
 
 #entitiesCloud > span {cursor: pointer;}
 #entitiesCloud .cat-person {color:#D32F2F;}
@@ -70,6 +121,7 @@ header, main, footer{padding-left: 0;}
         .entity .collapsible-body .img img {
             height: 200px;
             width: auto;
+            /*max-width:100%;*/
         }
     .entity .collapsible-body .more-images {
         height:30px;

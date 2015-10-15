@@ -4,8 +4,8 @@
     <title>News Analyzer - My Favorites</title>
 {% endblock %}
 
-
 {% block js %}
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
 {% endblock %}
 
 {% block content %}
@@ -44,17 +44,19 @@
                                 <div class="descr">{{ f.kwic|safe }}</div>
                             </div>
                             <div class="card-action">
-                                <p>{{ f.author }}</p>
-                                <p>{{ f.domain }}</p>
+                                <p>{{ f.author }} - {{ f.domain }}</p>
                                 <p>{{ f.date }}</p>
                             </div>
                             <div class="card-action">
-                                <p>
+                                <div class="card-footer">
                                     <a class="remfav" href="#" data-toggle="{{ f.id }}">
-                                        Remove
+                                        <i class="material-icons">grade</i> Remove favorite
                                     </a>
-                                    <a href="/analyze?url={{ f.url|safe }}">Analyze</a>
-                                </p>
+                                    <a class="right" href="/analyze?url={{ f.url|safe }}">
+                                        <i class="material-icons">language</i> Analyze
+                                    </a>
+                                    <div class="g-plus" data-action="share" data-href="{{ f.url }}" data-height="24"></div>
+                                </div>
                             </div>
                         </div>
                     </div>

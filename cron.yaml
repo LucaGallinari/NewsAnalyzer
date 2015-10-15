@@ -1,0 +1,5 @@
+cron:
+- description: test dispatch vs target
+  url: /cron/submit_emails
+  schedule: every 1 hours synchronized
+  timezone: Europe/Rome

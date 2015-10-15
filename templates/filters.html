@@ -14,6 +14,15 @@
         <div class="xl9 offset-xl1">
             <h4 class="deep-orange-text">Filters List</h4>
             <table id="listFilters" class="collection highlight {% if filters|length == 0 %}hidden{% endif %}" style="position:static">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Keywords</th>
+                        <th>Email Send Hour</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
                 <tbody>
                 {% if filters|length != 0 %}
                     {% for f in filters %}

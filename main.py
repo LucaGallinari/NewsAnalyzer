@@ -3,23 +3,25 @@
 # SYSTEM
 # import os
 import urllib
+import httplib
 import httplib2
 import webapp2
 import jinja2
 import json
 import datetime
+import pytz
 
 # GOOGLE
 from google.appengine.api import users
 from google.appengine.api import memcache
+from google.appengine.api import mail
 from oauth2client.appengine import OAuth2Decorator
 from oauth2client import client
 from apiclient.discovery import build
 from gaesessions import get_current_session
 
-# API + LIBS
+# MODELS + APIs
 from models import *
-from libs import feedparser
 from API import faroo
 from API.dandelion import DataTXT
 
@@ -67,40 +69,9 @@ def get_person_session_values():
 	return values
 
 
-# OAuth2DecoratorMod override OAuth2Decorator so that user do not get redirected
-# if not logged TODO: ?
-class OAuth2DecoratorMod(OAuth2Decorator):
-
-	def __init__(self, *args, **kwargs):
-		super(OAuth2Decorator, self).__init__(*args, **kwargs)
-
-	def oauth_aware(self, method):
-		def setup_oauth(request_handler, *args, **kwargs):
-			if self._in_error:
-				self._display_error_message(request_handler)
-				return
-
-			user = users.get_current_user()
-			# Don't use @login_decorator as this could be used in a POST request.
-			if not user:
-				request_handler.redirect(users.create_login_url(
-					request_handler.request.uri))
-				return
-
-			self._create_flow(request_handler)
-
-			self.flow.params['state'] = self._build_state_value(request_handler, user)
-			self.credentials = self._storage_class(
-				self._credentials_class, None,
-				self._credentials_property_name, user=user).get()
-			try:
-				resp = method(request_handler, *args, **kwargs)
-			finally:
-				self.credentials = None
-			return resp
-		return setup_oauth
-
-
+################
+# # HANDLERS # #
+################
 class IndexHandler(webapp2.RequestHandler):
 
 	def get(self):
@@ -361,7 +332,7 @@ class NewsHandler:
 	def __init__(self, retjson):
 		self.json = retjson
 
-	def get_news(self, search='', start=0):
+	def get_news(self, search='', start=1):
 		favs = []
 
 		# Retrieve favorites from DB
@@ -427,11 +398,144 @@ class NewsHandler:
 
 		# must return json formatted data
 		if self.json:
-			news = json.dumps(data)
+			# add logged check in the reponse
+			news = json.dumps({'data': data, 'logged': is_logged()})
 
 		return news
 
 
+class AnalyzeHandler(webapp2.RequestHandler):
+	def get(self):
+		template_values = {}
+		url = self.request.get('url')
+
+		if is_logged():
+			template_values = get_person_session_values()
+			# save the analyzation if rl not empty
+			if url != '':
+				analysis = DBAnalyzedURL(owner=template_values['email'], url=url)
+				analysis.put()
+
+			# Retrieve previous analizations from DB
+			q = DBAnalyzedURL.query(DBAnalyzedURL.owner == template_values['email']).order(-DBAnalyzedURL.add_date).fetch()
+			analiz = []
+			for a in q:
+				analiz.append({'url': a.url, 'add_date': a.add_date.strftime('%Y-%m-%d %H:%M:%S')})
+			template_values['analiz'] = analiz
+
+		if url != '':
+			# some url checks
+			datatxt = DataTXT(app_id='ff66f767', app_key='e22401da7ae5647cb5b7070dea5e0e7f')
+			try:
+				data = datatxt.nex(
+					url,
+					# include_categories=True,
+					include_types=True,
+					include_abstract=True,
+					include_image=True
+				)
+				if hasattr(data, 'annotations'):
+					data = data.annotations
+					idlist = []
+					newdata = []
+					# loop entities
+					for e in data:
+						# if already present in the new list don't add again
+						# so i get rid of duplicates that Dandelion put in the list
+						add = True
+						if hasattr(e, 'id'):
+							if e.id in idlist:
+								add = False
+							else:
+								add = True
+								idlist.append(e.id)
+						if add:
+							# loop types
+							if hasattr(e, 'types'):
+								if len(e.types) != 0:
+									for t in e.types:
+										if 'Person' in t:
+											e.categ = 'Person'
+											break
+										elif 'Organisation' in t:
+											e.categ = 'Organisation'
+											break
+										elif 'Place' in t:
+											e.categ = 'Place'
+											break
+										elif 'CelestialBody' in t:
+											e.categ = 'Space'
+											break
+										elif 'Event' in t:
+											e.categ = 'Event'
+											break
+										elif 'Film' in t:
+											e.categ = 'Film'
+											break
+										else:
+											e.categ = 'Concept'
+								else:
+									e.categ = 'Concept'
+							else:
+								e.categ = 'Concept'
+							newdata.append(e)
+					template_values['data'] = newdata
+				else:
+					template_values['data'] = []
+				template_values['url'] = url
+
+			except httplib.HTTPException:
+				# deadline repsonse reach so i signal to redo the request
+				template_values['error'] = 1
+
+		# Render template and return
+		template_values['page'] = "analyze"
+		template = JINJA_ENVIRONMENT.get_template('analyze.html')
+		self.response.write(template.render(template_values))
+
+	# DELETE for DELETE
+	def delete(self):
+		if not is_logged():
+			self.response.write("You are not logged!")
+		else:
+			session = get_current_session()
+			ndb.delete_multi(DBAnalyzedURL.query(DBAnalyzedURL.owner == session['email']).fetch(keys_only=True))
+			self.response.write("Ok")
+
+
+class AboutHandler(webapp2.RequestHandler):
+
+	def get(self):
+		template_values = {}
+
+		if is_logged():
+			template_values = get_person_session_values()
+
+			# Retrieve filters from DB
+			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
+			filters = []
+			for f in q:
+				fil = {
+					'id': f.key.id(),
+					'name': f.name,
+					'keywords': f.keywords,
+					'email_hour': f.email_hour,
+				}
+				filters.append(fil)
+			template_values['filters'] = filters
+
+		else:
+			template_values['url_login'] = users.create_login_url("/auth_google")
+
+		# Render template and return
+		template_values['page'] = "about"
+		template = JINJA_ENVIRONMENT.get_template('about.html')
+		self.response.write(template.render(template_values))
+
+
+############
+# # APIs # #
+############
 class FarooAPI(webapp2.RequestHandler):
 	def get(self):
 		search = self.request.get('search')
@@ -439,81 +543,6 @@ class FarooAPI(webapp2.RequestHandler):
 		nh = NewsHandler(True)
 		data = nh.get_news(search, start)
 		self.response.write(data)
-
-
-class AnalyzeHandler(webapp2.RequestHandler):
-	def get(self):
-		template_values = {}
-
-		if is_logged():
-			template_values = get_person_session_values()
-
-		url = self.request.get('url')
-
-		if url != '':
-			# some url checks
-			datatxt = DataTXT(app_id='ff66f767', app_key='e22401da7ae5647cb5b7070dea5e0e7f')
-			data = datatxt.nex(
-				url,
-				# include_categories=True,
-				include_types=True,
-				include_abstract=True,
-				include_image=True
-			)
-			if hasattr(data, 'annotations'):
-				data = data.annotations
-				idlist = []
-				newdata = []
-				# loop entities
-				for e in data:
-					# if already present in the new list don't add again
-					# so i get rid of duplicates that Dandelion put in the list
-					add = True
-					if hasattr(e, 'id'):
-						if e.id in idlist:
-							add = False
-						else:
-							add = True
-							idlist.append(e.id)
-					if add:
-						# loop types
-						if hasattr(e, 'types'):
-							if len(e.types) != 0:
-								for t in e.types:
-									if 'Person' in t:
-										e.categ = 'Person'
-										break
-									elif 'Organisation' in t:
-										e.categ = 'Organisation'
-										break
-									elif 'Place' in t:
-										e.categ = 'Place'
-										break
-									elif 'CelestialBody' in t:
-										e.categ = 'Space'
-										break
-									elif 'Event' in t:
-										e.categ = 'Event'
-										break
-									elif 'Film' in t:
-										e.categ = 'Film'
-										break
-									else:
-										e.categ = 'Concept'
-							else:
-								e.categ = 'Concept'
-						else:
-							e.categ = 'Concept'
-						newdata.append(e)
-				template_values['data'] = newdata
-			else:
-				template_values['data'] = []
-			template_values['url'] = url
-
-		# Render template and return
-		template_values['page'] = "analyze"
-		template = JINJA_ENVIRONMENT.get_template('analyze.html')
-		self.response.write(template.render(template_values))
 
 
 class FlickrAPI(webapp2.RequestHandler):
@@ -527,12 +556,10 @@ class FlickrAPI(webapp2.RequestHandler):
 			params = {
 				'method': 'flickr.photos.search',
 				'api_key': '902df328add6e1df503ca3c61f146216',
-				# 'secret': '26bd5a1a656ee460',
-				# 'tag_mode ': 'all',
 				'sort': 'relevance',
 				'format': 'json',
 				'nojsoncallback': '1',
-				'text': label,
+				'text': label.encode('utf-8'),
 				'page': page,
 				'per_page': per_page
 			}
@@ -554,7 +581,7 @@ class YoutubeAPI(webapp2.RequestHandler):
 		if search != '':
 			search_response = youtube.search().list(
 				q=search,
-				part="id,snippet",
+				part="id",
 				maxResults=3,
 				type="video"
 			).execute()
@@ -564,40 +591,112 @@ class YoutubeAPI(webapp2.RequestHandler):
 			self.response.write('[]')
 
 
-class GoogleNews(webapp2.RequestHandler):
+class RottenTomatoesAPI(webapp2.RequestHandler):
 	def get(self):
-		params = {
-			'q': 'pechino atletica',
-			'output': 'rss',
-			'num': 10,
-			'hl': 'it',
-		}
-		url = 'http://news.google.com/news'
-		params = urllib.urlencode(params)
-		url = '?'.join([url, params])
-		resp = urllib.urlopen(url)
-		data = resp.read().decode('utf-8')
-		data = feedparser.parse(data)
-		template_values = {
-			'resp': data['entries']
-		}
-		template = JINJA_ENVIRONMENT.get_template('home.html')
-		self.response.write(template.render(template_values))
+		# gets
+		search = self.request.get('search')
 
+		if search != '':
+			params = {
+				'api_key': 'x57tfeabdkmgfkafhesva8ww',
+				'q': search,
+				'page': 1,
+				'page_limit': 1
+			}
 
-class Logout(webapp2.RequestHandler):
-	def get(self):
-		if is_logged():
-			print "Logging out"
-			session = get_current_session()
-			if session.is_active():
-				session.terminate()
-				DECORATOR.set_credentials(None)
-			self.redirect(users.create_logout_url('/'))
+			url = 'http://api.rottentomatoes.com/api/public/v1/movies.json'
+			params = urllib.urlencode(params)
+			url = '?'.join([url, params])
+			resp = urllib.urlopen(url)
+			data = resp.read().decode('utf-8')
+			self.response.write(data)
 		else:
-			self.redirect('/')
+			self.response.write('{}')
 
 
+################
+# # OUT APIs # #
+################
+class ListUsersByEntityANAPI(webapp2.RequestHandler):
+	def get(self):
+		"""
+		# gets
+		search = self.request.get('search')
+		if search != '':
+
+			# Retrieve filters from DB
+			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
+			filters = []
+			for f in q:
+				fil = {
+					'id': f.key.id(),
+					'name': f.name,
+					'keywords': f.keywords,
+					'email_hour': f.email_hour,
+				}
+				filters.append(fil)
+			#template_values['filters'] = filters
+
+			#data = json.dumps(search_response.get("items", []))
+			#self.response.write(data)
+		else:
+			self.response.write('[]')
+			"""
+
+
+class ListUsersByUrlANAPI(webapp2.RequestHandler):
+	def get(self):
+		# gets
+		url = self.request.get('url')
+		order = self.request.get('order')
+		if url != '':
+			# Retrieve owner and email by url
+			q = DBAnalyzedURL.query(DBAnalyzedURL.url == url)
+			if order == 't':
+				q = q.order(-DBAnalyzedURL.add_date)
+			elif order == 'u':
+				q = q.order(-DBAnalyzedURL.owner)
+			q = q.fetch()
+			analiz = []
+			for a in q:
+				analiz.append({'email': a.owner, 'timestamp': a.add_date.strftime('%Y-%m-%d %H:%M:%S')})
+			data = json.dumps(analiz)
+			self.response.write(data)
+		else:
+			self.response.write('[]')
+
+
+class ListTopTenEntitiesANAPI(webapp2.RequestHandler):
+	def get(self):
+		# gets
+		"""
+		search = self.request.get('search')
+		if search != '':
+
+			# Retrieve filters from DB
+			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
+			filters = []
+			for f in q:
+				fil = {
+					'id': f.key.id(),
+					'name': f.name,
+					'keywords': f.keywords,
+					'email_hour': f.email_hour,
+				}
+				filters.append(fil)
+			#template_values['filters'] = filters
+
+
+			#data = json.dumps(search_response.get("items", []))
+			self.response.write(data)
+		else:
+			self.response.write('[]')
+			"""
+
+
+##############
+# # GOOGLE # #
+##############
 class GoogleAuthorization(webapp2.RequestHandler):
 	@DECORATOR.oauth_aware
 	def get(self):
@@ -655,14 +754,119 @@ class GoogleAuthorization(webapp2.RequestHandler):
 			self.redirect(users.create_login_url("/auth_google"))
 
 
+class Logout(webapp2.RequestHandler):
+	def get(self):
+		if is_logged():
+			print "Logging out"
+			session = get_current_session()
+			if session.is_active():
+				session.terminate()
+				DECORATOR.set_credentials(None)
+			self.redirect(users.create_logout_url('/'))
+		else:
+			self.redirect('/')
+
+
+# OAuth2DecoratorMod override OAuth2Decorator so that user do not get redirected
+# if not logged TODO: ?
+class OAuth2DecoratorMod(OAuth2Decorator):
+
+	def __init__(self, *args, **kwargs):
+		super(OAuth2Decorator, self).__init__(*args, **kwargs)
+
+	def oauth_aware(self, method):
+		def setup_oauth(request_handler, *args, **kwargs):
+			if self._in_error:
+				self._display_error_message(request_handler)
+				return
+
+			user = users.get_current_user()
+			# Don't use @login_decorator as this could be used in a POST request.
+			if not user:
+				request_handler.redirect(users.create_login_url(
+					request_handler.request.uri))
+				return
+
+			self._create_flow(request_handler)
+
+			self.flow.params['state'] = self._build_state_value(request_handler, user)
+			self.credentials = self._storage_class(
+				self._credentials_class, None,
+				self._credentials_property_name, user=user).get()
+			try:
+				resp = method(request_handler, *args, **kwargs)
+			finally:
+				self.credentials = None
+			return resp
+		return setup_oauth
+
+
+############
+# # CRON # #
+############
+class SubmitEmailsCRON(webapp2.RequestHandler):
+	def get(self):
+		print "Sto eseguendo il cron"
+
+		# Retrieve filters from DB for each users
+		filters = DBFilter.query(DBFilter.email_hour != -1).fetch()
+		for f in filters:
+			tz = pytz.timezone('Europe/Rome')
+			hour = datetime.datetime.now(tz).hour
+			# Is this the correct hour of the day?
+			if f.email_hour == hour:
+				print "Cron per "+f.name+" in esecuzione"
+
+				nh = NewsHandler(False)
+				newses = nh.get_news(f.keywords)
+				message = mail.EmailMessage(
+					sender="Luca Gallinari <luke.gallinari@gmail.com>",  # TODO
+					subject="News Analyzer Daily Filter Email"
+				)
+
+				text_message = "<html><head></head><body>"
+				text_message += \
+					"<h4>Dear "+f.owner+", here below you can find actually " \
+					"trending news about your filter: '" + f.keywords + "'</h4><br>."
+
+				# loop newses
+				text_message += "<div>"
+				for n in newses:
+					text_message += \
+						"<div style='width:100%;'>" \
+							"<div style='display:inline-block;width:30%;margin-right:20px;'>" \
+								"<a href='"+n.url+"'><img src='"+n.iurl+"'></a>" \
+							"</div>" \
+							"<div style='display:inline-block;width:60%;'>" \
+								"<div><a href='"+n.url+"'>"+n.title+"</a></div>" \
+								"<div>"+n.kwic+"</div>" \
+								"<div><a href='"+n.url+"'>Analyze</a></div>" \
+								"<div><a href='"+n.url+"'>Add favorite</a></div>" \
+							"</div>" \
+						"</div>"
+
+				text_message += "</div></body></html>"
+
+				message.to = f.owner+" <"+f.owner+">"
+				message.html = text_message
+				message.send()
+				print "Email inviata"
+		return
+
 routes = [
 	('/', IndexHandler),
 	('/filters', FiltersHandler),
 	('/favorites', FavoritesHandler),
 	('/analyze', AnalyzeHandler),
+	('/about', AboutHandler),
 	('/api/faroo', FarooAPI),
 	('/api/flickr', FlickrAPI),
 	('/api/youtube', YoutubeAPI),
+	('/api/rottent', RottenTomatoesAPI),
+	('/api/analyze/list_users_by_entity', ListUsersByEntityANAPI),
+	('/api/analyze/list_users_by_url', ListUsersByUrlANAPI),
+	('/api/analyze/list_top_ten_entities', ListTopTenEntitiesANAPI),
+	('/cron/submit_emails', SubmitEmailsCRON),
 	('/logout', Logout),
 	('/auth_google', GoogleAuthorization),
 	(DECORATOR.callback_path, DECORATOR.callback_handler())]

@@ -6,8 +6,50 @@
 var $entity = $('.entity');
 var num_per_page = 5;
 var page = 1;
+var $clearCrono = $('#clearAnalyzeCrono');
 
 $(document).ready(function(){
+
+
+
+    /* - REMOVE ANALYSIS - */
+    $clearCrono.on('click', function() {
+        $('#confirmModal').openModal();
+    });
+
+    $('.modal-footer').on('click', '#agreeRemove', function() {
+        $clearCrono.hide();
+        var parentId = $clearCrono.parent();
+        $(parentId).append(preloader_wrapper('center'));
+        // do an ajax req
+        $.ajax({
+            type: "DELETE",
+            url: '/analyze'
+        })
+        .done(function( data ) {
+            data = data.toString();
+            if (data=="Ok") { // if everything's ok
+                $('#listFilters').find('.collection-item').each(function() {
+                    $(this).fadeOut("normal", function() { $(this).remove();});
+                });
+                Materialize.toast('Chronology cleared!', 3000, 'rounded');
+            } else { // error
+                // rollback
+                $clearCrono.show();
+                // display error
+                Materialize.toast('Ops! An error occured.', 3000, 'rounded');
+            }
+            $(parentId).find('.preloader-wrapper').remove();
+        })
+        .fail(function () {
+            // rollback
+            $clearCrono.show();
+            $(parentId).find('.preloader-wrapper').remove();
+            // display error
+            Materialize.toast('Ops! An error occured.', 3000, 'rounded');
+        });
+    });
+
 
     /* Events */
     $entity.on('click', '.collapsible-header', function() {
@@ -17,10 +59,18 @@ $(document).ready(function(){
         var categ = $(this).attr('data-categ');
         var $loadImg = $('#loading_images-'+index);
         var $loadVid = $('#loading_videos-'+index);
+        var $loadFilm = $('#loading_film-'+index);
         if (!($(this).attr('data-loaded')===undefined)) { // data already loaded
             return;
         }
         $(this).attr('data-loaded','1');
+
+        // film
+        if (categ=='film') {
+            Materialize.toast('Loading movie info for '+label, 2000);
+            $loadVid.show();
+            loadFilm($loadFilm, label);
+        }
 
         // images
         Materialize.toast('Loading images for '+label, 2000);
@@ -33,6 +83,8 @@ $(document).ready(function(){
             $loadVid.show();
             loadVideos($loadVid, label);
         }
+
+
     });
 
     $entity.on('click', '.more-images', function() {
@@ -142,6 +194,32 @@ function loadVideos($load, search) {
     })
 }
 
+function loadFilm($load, search) {
+    $.ajax({
+        type: "GET",
+        url: "/api/rottent",
+        data:  {search: search}
+    })
+    .done(function (data) {
+        data = JSON.parse(data);
+        if ('movies' in data) {
+            var film = data['movies'];
+            var $par = $load.parent();
+            if (film.length != 0) {
+                addFilm($par, film);
+                return;
+            }
+        }
+        // error
+        Materialize.toast('No film found!', 4000);
+        // TODO: no film panel
+    })
+    .fail(function () {
+        Materialize.toast('Error while retrieving videos from the server', 4000);
+        $load.hide();
+    })
+}
+
 function addImage($imgs, img) {
     var htmlEl =
         '<div class="img col">  \
@@ -163,4 +241,37 @@ function addVideo($vids, vid) {
             <div class="play-button"></div> \
         </div></div>';
     $(htmlEl).hide().appendTo($vids).fadeIn(1000);
+}
+
+function addFilm($par, film) {
+    var img = (('detailed' in film['posters']) ? film['posters']['detailed'] : film['posters']['thumbnail']);
+
+    var htmlEl =
+        '<div class="row"> \
+            <div class="col s6 m5"> \
+                <img src="'+img+'" onerror="this.onerror=null;this.src=\'/assets/images/img_not_available.png\';"> \
+            </div> \
+            <div class="col s6 m7"> \
+                <div>Year: '+film['year']+'</div> \
+                <div>Release date: '+film['release_dates']['theater']+'</div> \
+                <div>Cast: ..</div> \
+                <div><a href="'+film['links']['alternate']+'" target="_blank">Learn more on Rotten Tomatoes..</a></div> \
+            </div> \
+        </div>';
+    $(htmlEl).hide().appendTo($par).fadeIn(1000);
+}
+
+function preloader_wrapper(pos) {
+    return ' \
+        <div class="preloader-wrapper small active '+pos+'"> \
+            <div class="spinner-layer spinner-green-only"> \
+                <div class="circle-clipper left"> \
+                <div class="circle"></div> \
+                </div><div class="gap-patch"> \
+                <div class="circle"></div> \
+                </div><div class="circle-clipper right"> \
+                <div class="circle"></div> \
+                </div> \
+            </div> \
+        </div>';
 }

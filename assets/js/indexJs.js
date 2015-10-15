@@ -19,9 +19,9 @@ $(document).ready(function(){
         if (numNews == 0 || noMoreNews)
             return;
         var pTop = $(document).scrollTop();
-        console.log(pTop + " / " + oTop);
+        // console.log(pTop + " / " + oTop);
         if (pTop > oTop) { // update newsWall
-            console.log("up");
+            // console.log("up");
             if (!lock) {
                 lock = true;
                 Materialize.toast('Loading news', 2000);
@@ -38,19 +38,23 @@ $(document).ready(function(){
                     }
                 })
                 .done(function (data) {
-                    var obj = JSON.parse(data).results;
-                    if (obj.length == 0) {
+                    var obj = JSON.parse(data);
+                    var logged = obj.logged;
+                    var res = obj.data.results;
+                    if (res.length == 0) {
                         Materialize.toast('OPS! No more news found, check back later!', 4000);
                         noMoreNews = true;
                         return;
                     }
-                    for (var n in obj) {
-                        if (obj.hasOwnProperty(n)) {
-                            var el = obj[n];
-                            addNews(el);
+                    for (var n in res) {
+                        if (res.hasOwnProperty(n)) {
+                            var el = res[n];
+                            addNews(el, logged);
                         }
                     }
                     numNews = $newsWall.find('.news').length;
+                    // google+ share button
+                    gapi.plus.go();
                 })
                 .fail(function () {
                     Materialize.toast('Error while retrieving news from the server', 4000);
@@ -58,7 +62,7 @@ $(document).ready(function(){
                 .always(function(){
 
                     setTimeout(function () {
-                        $(".waterfall").waterfall();
+                        $(".waterfall").waterfall({autoresize: true});
                         oTop = calculateOffsetFromTop();
                         lock = false;
                     }, 1500);
@@ -139,9 +143,11 @@ $(document).ready(function(){
     function changeFavoriteHTML(add, $obj, id) {
         if (add) {
             $obj.removeClass('addfav').addClass('remfav');
+            $obj.html('<i class="material-icons">grade</i> Remove favorite');
             $obj.attr('data-toggle', id);
         } else {
             $obj.removeClass('remfav').addClass('addfav');
+            $obj.html('<i class="material-icons">grade</i> Add favorite');
             $obj.removeAttr('data-toggle');
         }
     }
@@ -152,7 +158,7 @@ $(document).ready(function(){
                 parseInt(window.innerHeight) - 200;
     }
 
-    function addNews (news) {
+    function addNews (news, logged) {
 
         if (news.iurl == "")
             news.iurl = '/assets/images/img_not_available.png';
@@ -183,19 +189,27 @@ $(document).ready(function(){
                         <div class="descr">'+ news.kwic +'</div> \
                     </div> \
                     <div class="card-action"> \
-                        <p>'+ news.author +'</p> \
-                        <p>'+ news.domain +'</p> \
+                        <p>'+ news.author +' - '+ news.domain +'</p> \
                         <p>'+ news.date +'</p> \
                     </div> \
                     <div class="card-action"> \
-                        <p class="card-footer">';
-        if (news.hasOwnProperty('favorite')) {
-            htmlEl +=       '<a class="remfav left" href="#" data-toggle="'+news.favorite+'"><i class="material-icons">grade</i></a>';
-        } else {
-            htmlEl +=       '<a class="addfav left" href="#"><i class="material-icons">grade</i></a>';
+                        <div class="card-footer">';
+        if (logged) { // add favorites button only if logged
+            if (news.hasOwnProperty('favorite')) {
+                htmlEl +=       '<a class="remfav" href="#" data-toggle="'+news.favorite+'">' +
+                                    '<i class="material-icons">grade</i> Remove favorite' +
+                                '</a>';
+            } else {
+                htmlEl +=       '<a class="addfav" href="#">' +
+                                    '<i class="material-icons">grade</i> Add favorite' +
+                                '</a>';
+            }
         }
-            htmlEl +=       '<a class="right" href="/analyze?url='+ news.url +'">Analyze</a> \
-                        </p> \
+            htmlEl +=       '<a class="right" href="/analyze?url='+ news.url +'">' +
+                                '<i class="material-icons">language</i> Analyze' +
+                            '</a> \
+                            <div class="g-plus" data-action="share" data-href="'+ news.url +'" data-height="24"></div> \
+                        </div> \
                     </div> \
                     <form class="hide"> \
                         <input type="hidden" name="title" value="'+ news.title +'"> \
