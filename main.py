@@ -10,6 +10,7 @@ import jinja2
 import json
 import datetime
 import pytz
+from collections import Counter
 
 # GOOGLE
 from google.appengine.api import users
@@ -411,7 +412,7 @@ class AnalyzeHandler(webapp2.RequestHandler):
 
 		if is_logged():
 			template_values = get_person_session_values()
-			# save the analyzation if rl not empty
+			# save the analyzation if url not empty
 			if url != '':
 				analysis = DBAnalyzedURL(owner=template_values['email'], url=url)
 				analysis.put()
@@ -479,6 +480,11 @@ class AnalyzeHandler(webapp2.RequestHandler):
 							else:
 								e.categ = 'Concept'
 							newdata.append(e)
+							ent = DBEntityExtractedToday(
+								url=url,
+								entity=e.label
+							)
+							ent.put()
 					template_values['data'] = newdata
 				else:
 					template_values['data'] = []
@@ -617,34 +623,34 @@ class RottenTomatoesAPI(webapp2.RequestHandler):
 ################
 # # OUT APIs # #
 ################
-class ListUsersByEntityANAPI(webapp2.RequestHandler):
+class ListUsersByEntityAnalyzeAPI(webapp2.RequestHandler):
 	def get(self):
-		"""
 		# gets
-		search = self.request.get('search')
-		if search != '':
-
-			# Retrieve filters from DB
-			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
-			filters = []
-			for f in q:
-				fil = {
-					'id': f.key.id(),
-					'name': f.name,
-					'keywords': f.keywords,
-					'email_hour': f.email_hour,
-				}
-				filters.append(fil)
-			#template_values['filters'] = filters
-
-			#data = json.dumps(search_response.get("items", []))
-			#self.response.write(data)
+		entity = self.request.get('entity')
+		if entity != '':
+			# Retrieve URLs by ENTITY
+			q = DBEntityExtractedToday.query(DBEntityExtractedToday.entity == entity).fetch()
+			users_list = []
+			# loop
+			for a in q:
+				# retrieve all users by URL and group by users
+				# so we get rid of duplicated
+				q2 = DBAnalyzedURL.query(
+					DBAnalyzedURL.url == a.url,
+					projection=[DBAnalyzedURL.owner],
+					distinct=True
+				)
+				q2.fetch()
+				for b in q2:
+					if b.owner not in users_list:
+						users_list.append(b.owner)
+			data = json.dumps(users_list)
+			self.response.write(data)
 		else:
 			self.response.write('[]')
-			"""
 
 
-class ListUsersByUrlANAPI(webapp2.RequestHandler):
+class ListUsersByUrlAnalyzeAPI(webapp2.RequestHandler):
 	def get(self):
 		# gets
 		url = self.request.get('url')
@@ -666,32 +672,14 @@ class ListUsersByUrlANAPI(webapp2.RequestHandler):
 			self.response.write('[]')
 
 
-class ListTopTenEntitiesANAPI(webapp2.RequestHandler):
+class ListTopTenEntitiesAnalyzeAPI(webapp2.RequestHandler):
 	def get(self):
-		# gets
-		"""
-		search = self.request.get('search')
-		if search != '':
-
-			# Retrieve filters from DB
-			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
-			filters = []
-			for f in q:
-				fil = {
-					'id': f.key.id(),
-					'name': f.name,
-					'keywords': f.keywords,
-					'email_hour': f.email_hour,
-				}
-				filters.append(fil)
-			#template_values['filters'] = filters
-
-
-			#data = json.dumps(search_response.get("items", []))
-			self.response.write(data)
-		else:
-			self.response.write('[]')
-			"""
+		# Retrieve ENTITIES
+		q = DBEntityExtractedToday.query().fetch()
+		q = (o.entity for o in q)
+		entities = Counter(q).most_common(10)
+		data = json.dumps(entities)
+		self.response.write(data)
 
 
 ##############
@@ -863,9 +851,9 @@ routes = [
 	('/api/flickr', FlickrAPI),
 	('/api/youtube', YoutubeAPI),
 	('/api/rottent', RottenTomatoesAPI),
-	('/api/analyze/list_users_by_entity', ListUsersByEntityANAPI),
-	('/api/analyze/list_users_by_url', ListUsersByUrlANAPI),
-	('/api/analyze/list_top_ten_entities', ListTopTenEntitiesANAPI),
+	('/api/analyze/list_users_by_entity', ListUsersByEntityAnalyzeAPI),
+	('/api/analyze/list_users_by_url', ListUsersByUrlAnalyzeAPI),
+	('/api/analyze/list_top_ten_entities', ListTopTenEntitiesAnalyzeAPI),
 	('/cron/submit_emails', SubmitEmailsCRON),
 	('/logout', Logout),
 	('/auth_google', GoogleAuthorization),

@@ -26,4 +26,9 @@ indexes:
   properties:
   - name: url
   - name: owner
+
+- kind: DBAnalyzedURL
+  properties:
+  - name: url
+  - name: owner
     direction: desc

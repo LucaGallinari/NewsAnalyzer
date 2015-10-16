@@ -30,5 +30,10 @@ class DBFavorite(ndb.Model):
 
 class DBAnalyzedURL(ndb.Model):
     owner = ndb.StringProperty(indexed=True, required=True)
-    url = ndb.StringProperty(required=True)
+    url = ndb.StringProperty(indexed=True, required=True)  # indexed because we search by URL
     add_date = ndb.DateTimeProperty(auto_now_add=True)
+
+
+class DBEntityExtractedToday(ndb.Model):
+    url = ndb.StringProperty(indexed=True, required=True)
+    entity = ndb.StringProperty(indexed=True, required=True)  # indexed because we search by ENTITY
