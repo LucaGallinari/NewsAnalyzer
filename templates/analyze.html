@@ -44,7 +44,7 @@
 
     <div class="row">
         <div>
-            <h4 class="deep-orange-text">Analyzation</h4>
+            <h4 class="amber-text text-darken-3">Analyzation</h4>
                 <div class="row">
                     <form class="col s12" method="get">
                         <div class="input-field col s12 m9">
@@ -52,7 +52,7 @@
                             <label for="url">Paste the link here</label>
                         </div>
                         <div class="input-field col s12 m3 center">
-                            <button class="btn waves-effect waves-light" type="submit">
+                            <button class="btn waves-effect waves-light amber darken-3" type="submit">
                                 Analyze<i class="material-icons right">language</i>
                             </button>
                         </div>
@@ -105,7 +105,7 @@
                                             </div>
                                         </div>
                                         {% if item.categ|lower == "film" %}
-                                        <!-- Rotten Tomatoes -->
+                                        <!-- Rotten Tomatoes
                                         <div class="row">
                                             <div class="col s12">Rotten Tomatoes informations</div>
                                             <div class="col s12">
@@ -113,7 +113,7 @@
                                                     <div class="indeterminate"></div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </div>-->
                                         {% endif %}
                                         <!-- Google Maps -->
                                         {% if item.categ|lower == "place" %}
@@ -144,7 +144,7 @@
                                             </div>
                                         </div>
                                         <!-- Youtube -->
-                                        {% if item.categ|lower == "event" or item.categ|lower == "film" %}
+                                        {% if item.categ|lower == "event" or item.categ|lower == "film" or item.categ|lower == "software" %}
                                         <div class="row">
                                             <div class="col s12 youtube-container">
                                                 <div id="loading_videos-{{loop.index}}" class="progress row">
@@ -178,11 +178,12 @@
                 {% else %}
 
                     {% if url_logout %}
-                    <table id="listFilters" class="collection highlight {% if filters|length == 0 %}hidden{% endif %}" style="position:static">
+                    <table id="listAnalysis" class="collection highlight {% if filters|length == 0 %}hidden{% endif %}" style="position:static">
                         <thead>
                             <tr>
                                 <th>Date/Time</th>
                                 <th>URL</th>
+                                <th>Re-Analyze</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -190,7 +191,10 @@
                             {% for a in analiz %}
                                 <tr class="collection-item">
                                     <td class="datetime">{{ a.add_date }}</td>
-                                    <td class="url"><a href="/analyze?url={{ a.url|safe }}">{{ a.url }}</a></td>
+                                    <td class="url"><a href="{{ a.url|safe }}">{{ a.url }}</a></td>
+                                    <td class="analyze center"><a href="/analyze?url={{ a.url|safe }}">
+                                        <i class="material-icons">input</i>
+                                    </a></td>
                                 </tr>
                             {% endfor %}
                         {% else %}
@@ -213,16 +217,16 @@
                 <!-- Remove Analysis Confirm Modal -->
                 <div id="confirmModal" class="modal">
                     <div class="modal-content">
-                        <h4 class="deep-orange-text">Delete All Analysis</h4>
+                        <h4 class="amber-text text-darken-3">Delete All Analysis</h4>
                         <p class="flow-text">You are removing all Analysis! You won't be able to undo that.</p>
                     </div>
                     <div class="modal-footer">
-                        <a class="modal-action modal-close waves-effect waves-green btn-flat deep-orange-text right" id="agreeRemove">
+                        <button class="modal-action modal-close waves-effect waves-green right" id="agreeRemove">
                             Agree
-                        </a>
-                        <a href="#" class="modal-action modal-close waves-effect waves-red btn-flat left" id="disagreeRemove">
+                        </button>
+                        <button class="modal-action modal-close waves-effect waves-red red left" id="disagreeRemove">
                             Disagree
-                        </a>
+                        </button>
                     </div>
                 </div>
 

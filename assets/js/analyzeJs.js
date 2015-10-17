@@ -10,8 +10,6 @@ var $clearCrono = $('#clearAnalyzeCrono');
 
 $(document).ready(function(){
 
-
-
     /* - REMOVE ANALYSIS - */
     $clearCrono.on('click', function() {
         $('#confirmModal').openModal();
@@ -50,7 +48,6 @@ $(document).ready(function(){
         });
     });
 
-
     /* Events */
     $entity.on('click', '.collapsible-header', function() {
 
@@ -59,18 +56,18 @@ $(document).ready(function(){
         var categ = $(this).attr('data-categ');
         var $loadImg = $('#loading_images-'+index);
         var $loadVid = $('#loading_videos-'+index);
-        var $loadFilm = $('#loading_film-'+index);
+        //var $loadFilm = $('#loading_film-'+index);
         if (!($(this).attr('data-loaded')===undefined)) { // data already loaded
             return;
         }
         $(this).attr('data-loaded','1');
 
         // film
-        if (categ=='film') {
+        /*if (categ=='film') {
             Materialize.toast('Loading movie info for '+label, 2000);
             $loadVid.show();
             loadFilm($loadFilm, label);
-        }
+        }*/
 
         // images
         Materialize.toast('Loading images for '+label, 2000);
@@ -193,7 +190,7 @@ function loadVideos($load, search) {
         $load.hide();
     })
 }
-
+/*
 function loadFilm($load, search) {
     $.ajax({
         type: "GET",
@@ -218,7 +215,7 @@ function loadFilm($load, search) {
         Materialize.toast('Error while retrieving videos from the server', 4000);
         $load.hide();
     })
-}
+}*/
 
 function addImage($imgs, img) {
     var htmlEl =
@@ -242,7 +239,7 @@ function addVideo($vids, vid) {
         </div></div>';
     $(htmlEl).hide().appendTo($vids).fadeIn(1000);
 }
-
+/*
 function addFilm($par, film) {
     var img = (('detailed' in film['posters']) ? film['posters']['detailed'] : film['posters']['thumbnail']);
 
@@ -260,7 +257,7 @@ function addFilm($par, film) {
         </div>';
     $(htmlEl).hide().appendTo($par).fadeIn(1000);
 }
-
+*/
 function preloader_wrapper(pos) {
     return ' \
         <div class="preloader-wrapper small active '+pos+'"> \

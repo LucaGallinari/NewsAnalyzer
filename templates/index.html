@@ -10,7 +10,7 @@
 
 {% block content %}
 
-    <div class="row">
+    <div class="row" id="searchNews">
         <form class="col s12 m10 l8 offset-m1 offset-l2" method="GET">
             {% if url_logout %}
                 <div class="input-field col s12 m3">
@@ -30,7 +30,7 @@
                 <label for="search">Type your keywords here (eg: "google nexus 2015")</label>
             </div>
             <div class="col s4 m2">
-                <button class="btn waves-effect waves-light" type="submit">
+                <button class="btn waves-effect waves-light amber darken-3" type="submit">
                     <i class="material-icons center">search</i>
                 </button>
             </div>

@@ -1,5 +1,9 @@
 cron:
-- description: test dispatch vs target
+- description: submit filters emails
   url: /cron/submit_emails
   schedule: every 1 hours synchronized
+  timezone: Europe/Rome
+- description: clear today extracted entities
+  url: /cron/clear_today_entities
+  schedule: every 24 hours synchronized
   timezone: Europe/Rome

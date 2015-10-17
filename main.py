@@ -473,6 +473,9 @@ class AnalyzeHandler(webapp2.RequestHandler):
 										elif 'Film' in t:
 											e.categ = 'Film'
 											break
+										elif 'Software' in t:
+											e.categ = 'Software'
+											break
 										else:
 											e.categ = 'Concept'
 								else:
@@ -596,7 +599,7 @@ class YoutubeAPI(webapp2.RequestHandler):
 		else:
 			self.response.write('[]')
 
-
+"""
 class RottenTomatoesAPI(webapp2.RequestHandler):
 	def get(self):
 		# gets
@@ -618,7 +621,7 @@ class RottenTomatoesAPI(webapp2.RequestHandler):
 			self.response.write(data)
 		else:
 			self.response.write('{}')
-
+"""
 
 ################
 # # OUT APIs # #
@@ -794,7 +797,7 @@ class OAuth2DecoratorMod(OAuth2Decorator):
 ############
 class SubmitEmailsCRON(webapp2.RequestHandler):
 	def get(self):
-		print "Sto eseguendo il cron"
+		print "Sto eseguendo il cron per il submit delle email"
 
 		# Retrieve filters from DB for each users
 		filters = DBFilter.query(DBFilter.email_hour != -1).fetch()
@@ -841,6 +844,13 @@ class SubmitEmailsCRON(webapp2.RequestHandler):
 				print "Email inviata"
 		return
 
+
+class ClearTodayEntitiesCRON(webapp2.RequestHandler):
+	def get(self):
+		print "Sto eseguendo il cron per il clear delle entita'"
+		ndb.delete_multi(DBEntityExtractedToday.query().fetch(keys_only=True))
+
+
 routes = [
 	('/', IndexHandler),
 	('/filters', FiltersHandler),
@@ -850,11 +860,11 @@ routes = [
 	('/api/faroo', FarooAPI),
 	('/api/flickr', FlickrAPI),
 	('/api/youtube', YoutubeAPI),
-	('/api/rottent', RottenTomatoesAPI),
 	('/api/analyze/list_users_by_entity', ListUsersByEntityAnalyzeAPI),
 	('/api/analyze/list_users_by_url', ListUsersByUrlAnalyzeAPI),
 	('/api/analyze/list_top_ten_entities', ListTopTenEntitiesAnalyzeAPI),
 	('/cron/submit_emails', SubmitEmailsCRON),
+	('/cron/clear_today_entities', ClearTodayEntitiesCRON),
 	('/logout', Logout),
 	('/auth_google', GoogleAuthorization),
 	(DECORATOR.callback_path, DECORATOR.callback_handler())]

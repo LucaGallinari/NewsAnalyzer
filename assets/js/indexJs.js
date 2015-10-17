@@ -62,7 +62,6 @@ $(document).ready(function(){
                 .always(function(){
 
                     setTimeout(function () {
-                        $(".waterfall").waterfall({autoresize: true});
                         oTop = calculateOffsetFromTop();
                         lock = false;
                     }, 1500);

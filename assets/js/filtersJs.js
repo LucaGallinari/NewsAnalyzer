@@ -127,7 +127,7 @@ $(document).ready(function(){
 
     // add close modal button
     $(modifyFilterForm).find('.buttons-row').append(
-        '<button class="btn waves-effect waves-orange modal-close left" style="background-color: #E20000;" type="button"> ' +
+        '<button class="btn waves-effect waves-orange modal-close left red" type="button"> ' +
             'Close' +
         '</button>'
     );

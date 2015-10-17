@@ -10,12 +10,166 @@
 
 {% block content %}
     <!-- Table + Modals -->
-    <div class="row">
-        <h4 class="deep-orange-text">About</h4>
+    <div class="container" id="about">
+        <div class="row">
+            <h4 class="amber-text text-darken-3">About</h4>
+        </div>
 
+        <blockquote>
+            <div class="row">
+                News Analyzer is a <strong>cloud-based</strong> application that allows users to obtain more knowledge about a
+                specific news (<a href="/analyze">analyze page</a>), by showing different informations of the
+                main <strong>entities</strong> found. It also works as a news provider (<a href="/">homepage</a>) and manager
+                (if <a href="/login">logged</a>)
 
-        <div><h3>Nothing yet!</h3></div>
+            </div>
+            <div class="row">
+                <div>An <strong>authenticated user</strong> may access these additional functions:</div>
+                <ul class="list">
+                    <li>Manage favorite news</li>
+                    <li>Manage personal news filters (keywords)</li>
+                    <li>Daily receive an email with news regarding a filter</li>
+                    <li>Look at your analysis history</li>
+                    <li>Easily share news on Google+</li>
+                </ul>
+            </div>
+        </blockquote>
 
+        <div class="row">
+            <ul class="collapsible popout" data-collapsible="accordion">
+                <li>
+                    <div class="collapsible-header amber-text text-darken-4 active"><i class="material-icons">settings_input_component</i> External libraries</div>
+                    <div class="collapsible-body">
+                        <div class="row">
+                            <a href="http://jquery.com" target="_blank">jQuery</a>, a fast, small, and feature-rich JavaScript library. It makes things like HTML document traversal and manipulation, event handling, animation, and Ajax much simpler with an easy-to-use API that works across a multitude of browsers. With a combination of versatility and extensibility, jQuery has changed the way that millions of people write JavaScript.
+                        </div>
+                        <div class="row">
+                            <a href="http://materializecss.com" target="_blank">MaterializeCSS</a>, a modern responsive front-end framework based on Google's Material Design.
+                        </div>
+                        <div class="row">
+                            <a href="http://dfcreative.github.io/projects/waterfall/" target="_blank">waterfall</a>, simple min-height-masonry layout jQuery plugin.
+                        </div>
+                        <div class="row">
+                            <a href="https://github.com/lucaong/jQCloud" target="_blank">jQCloud</a>, jQuery plugin that lets you create a fancy cloud of keywords.
+                        </div>
+
+                    </div>
+                </li>
+                <li>
+                    <div class="collapsible-header amber-text text-darken-4"><i class="material-icons">import_export</i> External APIs</div>
+                    <div class="collapsible-body">
+                        <div class="row">
+                            <a href="http://faroo.com" target="_blank">FAROO</a>, web news search API.
+                        </div>
+                        <div class="row">
+                            <a href="https://dandelion.eu/" target="_blank">Dandelion API</a>, extract meaning from unstructured text and put it in context with a simple API. Thanks to its revolutionary technology, Dandelion API works well even on short and malformed texts in English, French, German, Italian and Portuguese.
+                        </div>
+                        <div class="row">
+                            <a href="https://www.flickr.com/" target="_blank">Flickr API</a>, picture galleries available with social networking, chat, groups, and photo ratings.
+                        </div>
+                        <div class="row">
+                            <a href="https://youtube.com" target="_blank">Youtube API</a>, most famous video-sharing website.
+                        </div>
+                        <div class="row">
+                            <a href="https://youtube.com" target="_blank">Google Maps API</a>, famous global maps website.
+                        </div>
+
+                    </div>
+                </li>
+                <li>
+                    <div class="collapsible-header amber-text text-darken-4"><i class="material-icons">settings_remote</i> Exported APIs</div>
+                    <div class="collapsible-body">
+                        <div class="row">
+                            <h5 class="amber-text text-darken-3">List users by entity</h5>
+                            <table class="center collection highlight">
+                                <tbody>
+                                    <tr>
+                                        <td>Description</td>
+                                        <td>Given an entity as argument this API return the list (in JSON) of logged users that extracted it today.</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Path</td>
+                                        <td>/api/analyze/list_users_by_entity</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Arguments</td>
+                                        <td>entity=[name], name of the entity (UTF-8)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Response</td>
+                                        <td>[(email1),(email2),(email3),..]</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Example(s)</td>
+                                        <td><a href="/api/analyze/list_users_by_entity?entity=Barack+Obama">/api/analyze/list_users_by_entity?entity=Barack+Obama</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row">
+                            <h5 class="amber-text text-darken-3">List users by entity</h5>
+                            <table class="center collection highlight">
+                                <tbody>
+                                    <tr>
+                                        <td>Description</td>
+                                        <td>Given the URL of a news this will return the list (in JSON) of logged users that analyzed it (users can also be present more than once) and the timestamp of analysis. Assumed that the user has not removed the news from his chronology. The list can be ordered by timestamp from newer analysis to older with the appropriate parameter.</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Path</td>
+                                        <td>/api/analyze/list_users_by_url</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Arguments</td>
+                                        <td>
+                                            <p>url=[url], stringa dell’url in codifica UTF-8.</p>
+                                            <p>order=[t/u], t=ordina per timestamp decrescenti, u=ordina per email (defaut=no order)</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Response</td>
+                                        <td>[{email:(email),timestamp:(timestamp), ..}]</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Example(s)</td>
+                                        <td><a href="/api/analyze/list_users_by_url?url=http://www.thewrap.com/the-martian-review-matt-damon-ridley-scott-chiwitel-ejiofor-kristen-wiig/&order=u">/api/analyze/list_users_by_url?url=http://www.thewrap.com/the-martian-review-matt-damon-ridley-scott-chiwitel-ejiofor-kristen-wiig/&order=u</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row">
+                            <h5 class="amber-text text-darken-3">List users by entity</h5>
+                            <table class="center collection highlight">
+                                <tbody>
+                                    <tr>
+                                        <td>Description</td>
+                                        <td>Return the list of top 10 extracted entities today, along with the count of extractions (for each entity).</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Path</td>
+                                        <td>/api/analyze/list_top_ten_entities</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Arguments</td>
+                                        <td>none</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Response</td>
+                                        <td>[[entity1, count1],[entity2, count2],..,[entity10, count10]]</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Example(s)</td>
+                                        <td><a href="/api/analyze/list_top_ten_entities">/api/analyze/list_top_ten_entities</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </li>
+            </ul>
+        </div>
     </div>
 <!-- END Table + Modals -->
 
