@@ -1,19 +1,29 @@
-<!DOCTYPE html>
-{% autoescape true %}
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Prova GAE Python</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <h1>Questa è la pagina LOGIN</h1>
-    <div>
-        <h3>Devi effettuare il login bla bla bla</h3>
-        <p><a href="{{ login_url|safe }}">Login</a></p>
+{% block title %}
+    <title>News Analyzer - Authorization</title>
+{% endblock %}
+
+{% block content %}
+
+    <div class="container" id="about">
+        <div class="row">
+            <h4 class="amber-text text-darken-3">Authorization</h4>
+        </div>
+
+        <blockquote>
+            <div class="row">
+                You have to authorize <strong>News Analyzer</strong> to access information of your Google+ account.<br>
+                Those information will be used only to enhance your exprience in our application and <br>
+                they won't be shared with any third parties subjects.
+            </div>
+        </blockquote>
+        <br>
+        <a href="{{login_url|safe}}" class="btn btn-large center waves-effect waves-light amber darken-3">Authorize!</a>
 
     </div>
 
-    </body>
-</html>
-{% endautoescape %}
+{% endblock %}
+
+{% block endscript %}
+{% endblock %}

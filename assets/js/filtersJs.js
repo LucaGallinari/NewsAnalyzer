@@ -39,7 +39,7 @@ $(document).ready(function(){
 
                 // hide no filter and errors
                 if ($('.removeFilter').length==1) {
-                    $(listFilters).show();
+                    $(listFilters).removeClass('hide').show();
                     $('#noFilters').hide(500);
                 }
                 $(addFilterErrors).fadeOut();
@@ -83,9 +83,10 @@ $(document).ready(function(){
                 $('#listFilter'+id).hide(500, function(){
                     // some animations
                     $(this).remove();
+                    // show no filters panel
                     if ($('.removeFilter').length==0) {
                         $(listFilters).hide();
-                        $('#noFilters').show(500);
+                        $('#noFilters').hide().removeClass('hide').show(500);
                     }
                 });
 

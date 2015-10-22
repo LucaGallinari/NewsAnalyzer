@@ -27,9 +27,10 @@ $(document).ready(function(){
         .done(function( data ) {
             data = data.toString();
             if (data=="Ok") { // if everything's ok
-                $('#listFilters').find('.collection-item').each(function() {
+                $('#listAnalysis').find('.collection-item').each(function() {
                     $(this).fadeOut("normal", function() { $(this).remove();});
                 });
+                $('#noAnalysis').hide().removeClass('hide').show();
                 Materialize.toast('Chronology cleared!', 3000, 'rounded');
             } else { // error
                 // rollback
@@ -133,7 +134,6 @@ function loadImages($load, label) {
         var obj = JSON.parse(data);
         if (obj.length == 0) {
             Materialize.toast('No images found!', 4000);
-            // TODO: no image panel
             return;
         }
         // loop images
@@ -173,7 +173,6 @@ function loadVideos($load, search) {
         var arr = JSON.parse(data);
         if (arr.length == 0) {
             Materialize.toast('No videos found!', 4000);
-            // TODO: no video panel
             return;
         }
         var $vids = $load.parent();
@@ -209,7 +208,6 @@ function loadFilm($load, search) {
         }
         // error
         Materialize.toast('No film found!', 4000);
-        // TODO: no film panel
     })
     .fail(function () {
         Materialize.toast('Error while retrieving videos from the server', 4000);

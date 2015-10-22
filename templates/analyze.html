@@ -71,7 +71,7 @@
 
                     {% if data|length == 0 %}
                         <div class="card-panel red-text lighten-1">
-                            Non è stato possibile analizzare la notizia. Prova con un'altra!
+                            It wasn't possible to analyze the news. Probably the service can't find any entities or the news is too short.
                         </div>
                     {% else %}
 
@@ -156,19 +156,6 @@
                                             </div>
                                         </div>
                                         {% endif %}
-                                        <!-- Types TODO: TO REMOVE -->
-                                        {% if 'types' in item %}
-                                        <div class="row">
-                                            <div class="col s12">Types</div>
-                                            <small class="col s12">
-                                                <ul>
-                                                {% for k in item.types %}
-                                                    <li>{{ k }}</li>
-                                                {% endfor %}
-                                                </ul>
-                                            </small>
-                                        </div>
-                                        {% endif %}
                                     </div>
                                 </li>
                             {% endfor %}
@@ -197,9 +184,9 @@
                                     </a></td>
                                 </tr>
                             {% endfor %}
-                        {% else %}
-                            <tr><td colspan="2">Chronology is empty</td></tr>
                         {% endif %}
+                        <tr id="noAnalysis" class="{% if analiz|length != 0 %}hide{%endif%}"><td colspan="2">Chronology is empty</td></tr>
+                        </tbody>
                     </table>
                     <div class="center">
                         <button
@@ -221,10 +208,10 @@
                         <p class="flow-text">You are removing all Analysis! You won't be able to undo that.</p>
                     </div>
                     <div class="modal-footer">
-                        <button class="modal-action modal-close waves-effect waves-green right" id="agreeRemove">
+                        <button class="btn modal-action modal-close waves-effect right" id="agreeRemove">
                             Agree
                         </button>
-                        <button class="modal-action modal-close waves-effect waves-red red left" id="disagreeRemove">
+                        <button class="btn modal-action modal-close waves-effect red left" id="disagreeRemove">
                             Disagree
                         </button>
                     </div>

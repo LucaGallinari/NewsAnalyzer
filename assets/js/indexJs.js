@@ -28,7 +28,6 @@ $(document).ready(function(){
                 $('#loading').show();
 
                 var s = $search.val();
-                //TODO: check?
                 $.ajax({
                     type: "GET",
                     url: "/api/faroo",

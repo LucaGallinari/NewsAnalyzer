@@ -13,7 +13,7 @@
     <div class="row">
         <div class="xl9 offset-xl1">
             <h4 class="amber-text text-darken-3">Filters List</h4>
-            <table id="listFilters" class="collection highlight {% if filters|length == 0 %}hidden{% endif %}" style="position:static">
+            <table id="listFilters" class="collection highlight {% if filters|length == 0 %}hide{% endif %}" style="position:static">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -37,8 +37,8 @@
                 {% endif %}
             </table>
 
-            <div id="noFilters" class="card-panel red lighten-1 {% if filters|length != 0 %}hide{% endif %}">
-                <p class="flow-text">No filters found! Insert one by using the form below.</p>
+            <div id="noFilters" class="card-panel red-text lighten-1 {% if filters|length != 0 %}hide{% endif %}">
+                No filters found! Insert one by using the form below.
             </div>
 
             <!-- Remove Filter Confirm Modal -->

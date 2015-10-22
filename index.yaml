@@ -32,3 +32,9 @@ indexes:
   - name: url
   - name: owner
     direction: desc
+
+- kind: DBFavorite
+  properties:
+  - name: owner
+  - name: add_date
+    direction: desc

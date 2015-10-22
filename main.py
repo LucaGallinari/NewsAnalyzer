@@ -1,7 +1,21 @@
 #!/usr/bin/env python
 
-# SYSTEM
-# import os
+"""
+This web application was developed for the course "Sistemi e Applicazioni di Rete" of the University
+of Modena and Reggio Emilia.
+
+News Analyzer is a cloud-based application that allows users to obtain more knowledge about
+a specific news, by showing different informations of the main entities found in it.
+It also works as a news provider and manager.
+Take a look at the ABOUT page for more information.
+
+Source: https://github.com/LucaGallinari/NewsAnalyzer
+Online: https://news-manager.appspot.com/
+"""
+
+__author__ = "Luca Gallinari"
+
+# Internal packages
 import urllib
 import httplib
 import httplib2
@@ -12,7 +26,7 @@ import datetime
 import pytz
 from collections import Counter
 
-# GOOGLE
+# Google App Engine or related packages
 from google.appengine.api import users
 from google.appengine.api import memcache
 from google.appengine.api import mail
@@ -20,36 +34,54 @@ from oauth2client.appengine import OAuth2Decorator
 from oauth2client import client
 from apiclient.discovery import build
 from gaesessions import get_current_session
-
-# MODELS + APIs
 from models import *
+
+# APIs
 from API import faroo
 from API.dandelion import DataTXT
 
-
-http = httplib2.Http(memcache)
+# Initialize the decorator for the oauth2 authorization component
 DECORATOR = OAuth2Decorator(
 	client_id='99266390307-ic0seu51ghcq84m0bfhh3etdeafo81pl.apps.googleusercontent.com',
 	client_secret='nfdBT_BReUhhiGrrsmJoe9WA',
 	scope='https://www.googleapis.com/auth/plus.me')
 
+# Use memcache
+http = httplib2.Http(memcache)
+# Retrieve g+ and youtube APIs helpers
 gplusService = build("plus", "v1", http=http)
 youtube = build('youtube', 'v3', developerKey='AIzaSyCWKe3sGVhfTmaYCvPf2jW-d_2QLEod7Rw')
 
+# Setup jinja2 environment
 JINJA_ENVIRONMENT = jinja2.Environment(
 	loader=jinja2.PackageLoader('main', 'templates'),
 	extensions=['jinja2.ext.autoescape', 'jinja2.ext.loopcontrols'],
 	autoescape=True)
 
 
-# Jinja Filter Extension
 def ccontains(value, arg):
+	"""
+	Jinja2 has no build-in methods to check if a string is within another.
+	We extende Jinja2 funtionalities with this method
+
+	@type   value:  basestring
+	@param  value:  string in which we seek
+	@type   arg:    basestring
+	@param  arg:    string to seek for
+	@rtype:         bool
+	@return:        if arg within value or not
+	"""
 	return arg in value
 JINJA_ENVIRONMENT.filters['ccontains'] = ccontains
 
 
-# Check if logged by using sessions
 def is_logged():
+	"""
+	Use gaessesions to check if logged
+
+	@rtype:         bool
+	@return:        if logged or not
+	"""
 	session = get_current_session()
 	try:
 		email = session['email']
@@ -58,8 +90,14 @@ def is_logged():
 		return False
 
 
-# Get person session values
 def get_person_session_values():
+	"""
+	Get all the information regarding the (logged) user from the session,
+	plus the logout url.
+
+	@rtype:         dict
+	@return:        user session values
+	"""
 	session = get_current_session()
 	values = {
 		'email': session['email'],
@@ -74,7 +112,10 @@ def get_person_session_values():
 # # HANDLERS # #
 ################
 class IndexHandler(webapp2.RequestHandler):
-
+	"""
+	Handler for the homepage that call the NewsHandler to get the latest news.
+	If the user is logged it retrieves his filters.
+	"""
 	def get(self):
 		template_values = {}
 
@@ -101,7 +142,6 @@ class IndexHandler(webapp2.RequestHandler):
 		search = self.request.get('search')
 		if search != '':
 			template_values['search'] = search
-
 		nh = NewsHandler(False)
 		template_values['news'] = nh.get_news(search)
 
@@ -112,7 +152,13 @@ class IndexHandler(webapp2.RequestHandler):
 
 
 class FiltersHandler(webapp2.RequestHandler):
+	"""
+	Handler that manage filters's CRUD (create, read, update, delete).
+	"""
 	def get(self):
+		"""
+		Retrieve filters from the datastore and render them into a template.
+		"""
 		if not is_logged():
 			self.redirect(users.create_login_url("/auth_google"))
 		else:
@@ -136,8 +182,11 @@ class FiltersHandler(webapp2.RequestHandler):
 			template = JINJA_ENVIRONMENT.get_template('filters.html')
 			self.response.write(template.render(template_values))
 
-	# POST for INSERT
 	def post(self):
+		"""
+		Insert a filter into the datastore.
+		Writes "Ok: [ID]" if success, "[error]" if not
+		"""
 		if not is_logged():
 			self.response.write("You are not logged!")
 		else:
@@ -166,8 +215,11 @@ class FiltersHandler(webapp2.RequestHandler):
 			key = my_filter.put()
 			self.response.write("Ok: " + str(key.id()))
 
-	# PUT for MODIFICATION
 	def put(self):
+		"""
+		Update a filter.
+		Writes "Ok" if success, "[error]" if not
+		"""
 		if not is_logged():
 			self.response.write("You are not logged!")
 		else:
@@ -212,12 +264,16 @@ class FiltersHandler(webapp2.RequestHandler):
 			my_filter.put()
 			self.response.write("Ok")
 
-	# DELETE for DELETE
 	def delete(self):
+		"""
+		Delete a filter by ID.
+		Writes "Ok" if success, "[error]" if not
+		"""
 		if not is_logged():
 			self.response.write("You are not logged!")
 		else:
 			session = get_current_session()
+			# various checks
 			filter_id = self.request.get('id')
 			if filter_id is None:
 				self.response.write("ID not specified!")
@@ -231,19 +287,26 @@ class FiltersHandler(webapp2.RequestHandler):
 			except ValueError:
 				self.response.write("ID is not a valid integer!")
 				return
+			# delete from DB
 			DBFilter(id=filter_id, owner=session['email']).key.delete()
 			self.response.write("Ok")
 
 
 class FavoritesHandler(webapp2.RequestHandler):
+	"""
+	Handler that manage insert and delete of a favorite news
+	"""
 	def get(self):
+		"""
+		Simply retrieve favorites and render them
+		"""
 		if not is_logged():
 			self.redirect(users.create_login_url("/auth_google"))
 		else:
 			template_values = get_person_session_values()
 
-			# Retrieve favorites from DB
-			q = DBFavorite.query(DBFavorite.owner == template_values['email']).fetch()
+			# Retrieve favorites from DB ordered by add_date DESC
+			q = DBFavorite.query(DBFavorite.owner == template_values['email']).order(-DBFavorite.add_date).fetch()
 			favs = []
 			for f in q:
 				fav = {
@@ -265,8 +328,11 @@ class FavoritesHandler(webapp2.RequestHandler):
 			template = JINJA_ENVIRONMENT.get_template('favorites.html')
 			self.response.write(template.render(template_values))
 
-	# POST for INSERT
 	def post(self):
+		"""
+		Insert a favorite into the datastore.
+		Writes "Ok: [ID]" if success, "[error]" if not
+		"""
 		if not is_logged():
 			self.response.write("You are not logged!")
 		else:
@@ -288,7 +354,7 @@ class FavoritesHandler(webapp2.RequestHandler):
 				try:
 					# date is a long number? so it's a timestamp
 					date_l = long(date)
-					date = datetime.datetime.fromtimestamp(date_l).strftime('%Y-%m-%d %H:%M:%S')
+					date = datetime.datetime.fromtimestamp(date_l / 1e3).strftime('%Y-%m-%d %H:%M:%S')  # true division
 				except ValueError:
 					# it's a string, useless command below
 					date = str(date)
@@ -307,12 +373,16 @@ class FavoritesHandler(webapp2.RequestHandler):
 			key = my_fav.put()
 			self.response.write("Ok: " + str(key.id()))
 
-	# DELETE for DELETE
 	def delete(self):
+		"""
+		Delete a favorite by ID.
+		Writes "Ok" if success, "[error]" if not
+		"""
 		if not is_logged():
 			self.response.write("You are not logged!")
 		else:
 			session = get_current_session()
+			# some checks
 			fav_id = self.request.get('id')
 			if fav_id == "":
 				self.response.write("ID not specified!")
@@ -323,17 +393,34 @@ class FavoritesHandler(webapp2.RequestHandler):
 			except ValueError:
 				self.response.write("ID is not a valid integer!")
 				return
+			# remove from the DB
 			DBFavorite(id=fav_id, owner=session['email']).key.delete()
 			self.response.write("Ok")
 
 
 class NewsHandler:
+	"""
+	This class uses FAROO APIs interface to retrieve latest news.
+	If the json variable is set to true, FAROO response will be in JSON format
+	and data must be decode before cheking favorites and datetime. If json is False,
+	FARRO response data will be accessed as a simple dict.
+	"""
+	# we are serving a json request?
 	json = False
 
 	def __init__(self, retjson):
+		"""
+		Setup
+
+		@type   retjson:  bool
+		@param  retjson:  want a JSON reponse
+		"""
 		self.json = retjson
 
 	def get_news(self, search='', start=1):
+		"""
+		Call FAROO APIs, check favorites and datetimes.
+		"""
 		favs = []
 
 		# Retrieve favorites from DB
@@ -364,8 +451,8 @@ class NewsHandler:
 					if type(n['date']) is not datetime.datetime:
 						try:
 							# date is a long number? so it's a timestamp
-							date_l = long(n['date'])
-							n['date'] = datetime.datetime.fromtimestamp(date_l).strftime('%Y-%m-%d %H:%M:%S')
+							date_i = int(n['date'])
+							n['date'] = datetime.datetime.fromtimestamp(date_i / 1e3).strftime('%Y-%m-%d %H:%M:%S')  # true division
 						except ValueError:
 							# it's a string, useless command below
 							n['date'] = str(n['date'])
@@ -389,8 +476,8 @@ class NewsHandler:
 						if type(n.date) is not datetime.datetime:
 							try:
 								# date is a long number? so it's a timestamp
-								date_l = long(n.date)
-								n.date = datetime.datetime.fromtimestamp(date_l).strftime('%Y-%m-%d %H:%M:%S')
+								date_l = int(n.date)
+								n.date = datetime.datetime.fromtimestamp(date_l / 1e3).strftime('%Y-%m-%d %H:%M:%S')  # true division
 							except ValueError:
 								# it's a string, useless command below
 								n.date = str(n.date)
@@ -406,7 +493,15 @@ class NewsHandler:
 
 
 class AnalyzeHandler(webapp2.RequestHandler):
+	"""
+	This class manage analysis.
+	"""
 	def get(self):
+		"""
+		Show analyzed url if no url was passed, otherwise extract entities with Dandelion APIs
+		and put a "category" field based on the "types" of the entity.
+		Save entity extracted in the DB for external APIs.
+		"""
 		template_values = {}
 		url = self.request.get('url')
 
@@ -494,7 +589,7 @@ class AnalyzeHandler(webapp2.RequestHandler):
 				template_values['url'] = url
 
 			except httplib.HTTPException:
-				# deadline repsonse reach so i signal to redo the request
+				# deadline response reached, so i signal to redo the request
 				template_values['error'] = 1
 
 		# Render template and return
@@ -502,8 +597,10 @@ class AnalyzeHandler(webapp2.RequestHandler):
 		template = JINJA_ENVIRONMENT.get_template('analyze.html')
 		self.response.write(template.render(template_values))
 
-	# DELETE for DELETE
 	def delete(self):
+		"""
+		Remove all analysis of this user.
+		"""
 		if not is_logged():
 			self.response.write("You are not logged!")
 		else:
@@ -513,26 +610,14 @@ class AnalyzeHandler(webapp2.RequestHandler):
 
 
 class AboutHandler(webapp2.RequestHandler):
-
+	"""
+	Rendere the About page
+	"""
 	def get(self):
 		template_values = {}
 
 		if is_logged():
 			template_values = get_person_session_values()
-
-			# Retrieve filters from DB
-			q = DBFilter.query(DBFilter.owner == template_values['email']).fetch()
-			filters = []
-			for f in q:
-				fil = {
-					'id': f.key.id(),
-					'name': f.name,
-					'keywords': f.keywords,
-					'email_hour': f.email_hour,
-				}
-				filters.append(fil)
-			template_values['filters'] = filters
-
 		else:
 			template_values['url_login'] = users.create_login_url("/auth_google")
 
@@ -546,6 +631,10 @@ class AboutHandler(webapp2.RequestHandler):
 # # APIs # #
 ############
 class FarooAPI(webapp2.RequestHandler):
+	"""
+	This class is used to call FAROO APIs asynchronously with AJAX and
+	return a JSON response.
+	"""
 	def get(self):
 		search = self.request.get('search')
 		start = self.request.get('start', 0)
@@ -555,6 +644,10 @@ class FarooAPI(webapp2.RequestHandler):
 
 
 class FlickrAPI(webapp2.RequestHandler):
+	"""
+	This class is used to call Flickr APIs asynchronously with AJAX and
+	return a JSON response.
+	"""
 	def get(self):
 		# gets
 		label = self.request.get('label')
@@ -584,6 +677,10 @@ class FlickrAPI(webapp2.RequestHandler):
 
 
 class YoutubeAPI(webapp2.RequestHandler):
+	"""
+	This class is used to call Youtube APIs asynchronously with AJAX and
+	return a JSON response.
+	"""
 	def get(self):
 		# gets
 		search = self.request.get('search')
@@ -623,10 +720,14 @@ class RottenTomatoesAPI(webapp2.RequestHandler):
 			self.response.write('{}')
 """
 
+
 ################
 # # OUT APIs # #
 ################
 class ListUsersByEntityAnalyzeAPI(webapp2.RequestHandler):
+	"""
+	Exported API used to retrieve the list of users that extracted a given entity today.
+	"""
 	def get(self):
 		# gets
 		entity = self.request.get('entity')
@@ -654,6 +755,9 @@ class ListUsersByEntityAnalyzeAPI(webapp2.RequestHandler):
 
 
 class ListUsersByUrlAnalyzeAPI(webapp2.RequestHandler):
+	"""
+	Exported API used to retrieve the list of users that extracted a given URL.
+	"""
 	def get(self):
 		# gets
 		url = self.request.get('url')
@@ -676,6 +780,9 @@ class ListUsersByUrlAnalyzeAPI(webapp2.RequestHandler):
 
 
 class ListTopTenEntitiesAnalyzeAPI(webapp2.RequestHandler):
+	"""
+	Exported API used to retrieve the list of the 10 most extracted entities today.
+	"""
 	def get(self):
 		# Retrieve ENTITIES
 		q = DBEntityExtractedToday.query().fetch()
@@ -689,6 +796,10 @@ class ListTopTenEntitiesAnalyzeAPI(webapp2.RequestHandler):
 # # GOOGLE # #
 ##############
 class GoogleAuthorization(webapp2.RequestHandler):
+	"""
+	This class manage the Oauth2Authorization through Google+.
+	If the User is not in the datastore, he will be added. If already present, he will be updated.
+	"""
 	@DECORATOR.oauth_aware
 	def get(self):
 
@@ -714,8 +825,20 @@ class GoogleAuthorization(webapp2.RequestHandler):
 					my_user = DBUser.query(DBUser.email == email).get()
 					if not my_user:
 						print "- User not in db"
-						# print "   inserted"
-						# TODO: Email
+
+						# render template
+						template_values = {'display_name': session['display_name']}
+						template = JINJA_ENVIRONMENT.get_template('email_welcome.html')
+
+						# send email
+						message = mail.EmailMessage(
+							sender="News Analyzer <support@news-manager.appspotmail.com>",
+							subject="Welcome to News Analyzer"
+						)
+						message.to = email+" <"+email+">"
+						message.html = template.render(template_values)
+						message.send()
+						print "Email inviata"
 					else:
 						print "- Already present"
 
@@ -746,6 +869,9 @@ class GoogleAuthorization(webapp2.RequestHandler):
 
 
 class Logout(webapp2.RequestHandler):
+	"""
+	Logout from your Google account and remove credentials.
+	"""
 	def get(self):
 		if is_logged():
 			print "Logging out"
@@ -758,10 +884,10 @@ class Logout(webapp2.RequestHandler):
 			self.redirect('/')
 
 
-# OAuth2DecoratorMod override OAuth2Decorator so that user do not get redirected
-# if not logged TODO: ?
 class OAuth2DecoratorMod(OAuth2Decorator):
-
+	"""
+	OAuth2DecoratorMod override OAuth2Decorator so that user do not get redirected
+	"""
 	def __init__(self, *args, **kwargs):
 		super(OAuth2Decorator, self).__init__(*args, **kwargs)
 
@@ -796,8 +922,11 @@ class OAuth2DecoratorMod(OAuth2Decorator):
 # # CRON # #
 ############
 class SubmitEmailsCRON(webapp2.RequestHandler):
+	"""
+	CRON class that send emails with news based on users's filters.
+	This can be called from outside for debugging purposes.
+	"""
 	def get(self):
-		print "Sto eseguendo il cron per il submit delle email"
 
 		# Retrieve filters from DB for each users
 		filters = DBFilter.query(DBFilter.email_hour != -1).fetch()
@@ -806,51 +935,56 @@ class SubmitEmailsCRON(webapp2.RequestHandler):
 			hour = datetime.datetime.now(tz).hour
 			# Is this the correct hour of the day?
 			if f.email_hour == hour:
-				print "Cron per "+f.name+" in esecuzione"
-
+				# retrieve news by keywords
 				nh = NewsHandler(False)
-				newses = nh.get_news(f.keywords)
+				news = nh.get_news(f.keywords)
+
+				# render template
+				template_values = {'news': news, 'keywords': f.keywords}
+				template = JINJA_ENVIRONMENT.get_template('email_news.html')
+
+				# send email
 				message = mail.EmailMessage(
-					sender="Luca Gallinari <luke.gallinari@gmail.com>",  # TODO
+					sender="News Analyzer <support@news-manager.appspotmail.com>",
 					subject="News Analyzer Daily Filter Email"
 				)
-
-				text_message = "<html><head></head><body>"
-				text_message += \
-					"<h4>Dear "+f.owner+", here below you can find actually " \
-					"trending news about your filter: '" + f.keywords + "'</h4><br>."
-
-				# loop newses
-				text_message += "<div>"
-				for n in newses:
-					text_message += \
-						"<div style='width:100%;'>" \
-							"<div style='display:inline-block;width:30%;margin-right:20px;'>" \
-								"<a href='"+n.url+"'><img src='"+n.iurl+"'></a>" \
-							"</div>" \
-							"<div style='display:inline-block;width:60%;'>" \
-								"<div><a href='"+n.url+"'>"+n.title+"</a></div>" \
-								"<div>"+n.kwic+"</div>" \
-								"<div><a href='"+n.url+"'>Analyze</a></div>" \
-								"<div><a href='"+n.url+"'>Add favorite</a></div>" \
-							"</div>" \
-						"</div>"
-
-				text_message += "</div></body></html>"
-
 				message.to = f.owner+" <"+f.owner+">"
-				message.html = text_message
+				message.html = template.render(template_values)
 				message.send()
-				print "Email inviata"
-		return
+		self.response.write("ok")
 
 
 class ClearTodayEntitiesCRON(webapp2.RequestHandler):
+	"""
+	CRON class that clear the datastore entity of today extracted entities.
+	This can be called from outside for debugging purposes.
+	"""
 	def get(self):
-		print "Sto eseguendo il cron per il clear delle entita'"
 		ndb.delete_multi(DBEntityExtractedToday.query().fetch(keys_only=True))
+		self.response.write("ok")
 
 
+class EmailWelcome(webapp2.RequestHandler):
+	"""
+	FOR DEBUG: a simple page where you can see the Welcome Email template.
+	"""
+	def get(self):
+		template_values = {'display_name': 'Luca Gallinari'}
+		template = JINJA_ENVIRONMENT.get_template('email_welcome.html')
+		self.response.write(template.render(template_values))
+
+
+class EmailNews(webapp2.RequestHandler):
+	"""
+	FOR DEBUG: a simple page where you can see the News Filters Email template.
+	"""
+	def get(self):
+		nh = NewsHandler(False)
+		template_values = {'news': nh.get_news()}
+		template = JINJA_ENVIRONMENT.get_template('email_news.html')
+		self.response.write(template.render(template_values))
+
+# connect each route with the apppropriate controller (class)
 routes = [
 	('/', IndexHandler),
 	('/filters', FiltersHandler),
@@ -860,6 +994,8 @@ routes = [
 	('/api/faroo', FarooAPI),
 	('/api/flickr', FlickrAPI),
 	('/api/youtube', YoutubeAPI),
+	('/email_welcome', EmailWelcome),
+	('/email_news', EmailNews),
 	('/api/analyze/list_users_by_entity', ListUsersByEntityAnalyzeAPI),
 	('/api/analyze/list_users_by_url', ListUsersByUrlAnalyzeAPI),
 	('/api/analyze/list_top_ten_entities', ListTopTenEntitiesAnalyzeAPI),
