@@ -810,7 +810,6 @@ class GoogleAuthorization(webapp2.RequestHandler):
 			# Logged
 			# has credentials?
 			if DECORATOR.has_credentials():
-				print "Has credentials"
 
 				try:
 					# OAtuh2 call to google+ person
@@ -819,12 +818,14 @@ class GoogleAuthorization(webapp2.RequestHandler):
 					session = get_current_session()
 					session['email'] = email
 					session['img_profile'] = gplus_user['image']['url']
-					session['display_name'] = gplus_user['displayName']
+					if gplus_user['displayName'] == "":
+						session['display_name'] = email
+					else:
+						session['display_name'] = gplus_user['displayName']
 
 					# Save the user, if already present it get updated
 					my_user = DBUser.query(DBUser.email == email).get()
 					if not my_user:
-						print "- User not in db"
 
 						# render template
 						template_values = {'display_name': session['display_name']}
@@ -838,10 +839,8 @@ class GoogleAuthorization(webapp2.RequestHandler):
 						message.to = email+" <"+email+">"
 						message.html = template.render(template_values)
 						message.send()
-						print "Email inviata"
-					else:
-						print "- Already present"
 
+					# add user to datastore
 					my_user = DBUser(
 						email=email,
 						display_name=session['display_name'],
@@ -852,12 +851,10 @@ class GoogleAuthorization(webapp2.RequestHandler):
 					self.redirect('/')
 
 				except client.AccessTokenRefreshError:
-					print "Access token expired."
 					self.redirect('/auth_google')
 
 			else:
 				# No credentials, show credentials page
-				print "No credentials"
 				template_values = {
 					'login_url': DECORATOR.authorize_url(),
 				}
@@ -874,7 +871,6 @@ class Logout(webapp2.RequestHandler):
 	"""
 	def get(self):
 		if is_logged():
-			print "Logging out"
 			session = get_current_session()
 			if session.is_active():
 				session.terminate()
